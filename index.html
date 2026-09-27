@@ -106,7 +106,6 @@
   kbd{font-family:'JetBrains Mono',monospace;font-size:9.5px;background:#1e293b;border:1px solid #475569;border-bottom-width:2px;border-radius:4px;padding:0 4px;color:#e2e8f0;}
   @media (prefers-reduced-motion: reduce){ .blink{animation:none;} .bar>i{transition:none;} }
 
-  /* --- Ventanas flotantes: se arrastran por su barra, se minimizan y se ocultan --- */
   .win{position:fixed;z-index:30;touch-action:none;}
   .win.dragging{opacity:.92;}
   .win-bar{cursor:move;-webkit-user-select:none;user-select:none;}
@@ -124,7 +123,6 @@
   #pip-frame.min{width:auto;min-width:220px;}
   .pip-bar .win-btn{background:rgba(2,6,23,.8);}
 
-  /* --- Interruptores de paneles en el encabezado --- */
   .ui-tg{width:30px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:6px;
     color:#64748b;font-size:12px;transition:background .15s,color .15s;}
   .ui-tg:hover{color:#e2e8f0;background:#1e293b;}
@@ -134,16 +132,13 @@
   body.hide-hud #align-hud{display:none;}
   body.hide-pip #pip-frame{display:none;}
   body.hide-log #logbar{display:none;}
+  body.hide-mon #mon-frame{display:none;}
 
-  /* =================================================================
-     CELULAR Y TABLET · layout por pestanas, mando tactil y rendimiento
-     ================================================================= */
   html,body{overscroll-behavior:none;-webkit-text-size-adjust:100%;}
   body{touch-action:manipulation;}
   #app{height:100dvh;}
   #canvas-container canvas{touch-action:none;}
 
-  /* --- HUD compacto y dock tactil (ocultos en escritorio) --- */
   #m-hud{display:none;max-width:94%;text-align:center;font-size:11px;font-weight:700;color:#67e8f9;
     background:rgba(2,6,23,.85);border:1px solid rgba(34,211,238,.35);border-radius:9px;padding:5px 11px;
     backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);pointer-events:none;}
@@ -172,11 +167,7 @@
     font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:11.5px;border-radius:9px;color:#94a3b8;
     background:rgba(8,19,31,.92);border:1px solid rgba(255,255,255,.08);-webkit-tap-highlight-color:transparent;}
   .mtab.on{background:#22d3ee;color:#02202a;border-color:#a5f3fc;}
-
-  /* El mando tactil aparece en cualquier pantalla con dedo (tablet incluida) */
   @media (pointer:coarse){ #mdock{display:flex;} }
-
-  /* --- Layout de celular / tablet en vertical (por debajo de 900 px) --- */
   @media (max-width:900px){
     #mdock{display:flex;}
     #mtabs{display:flex;}
@@ -206,14 +197,345 @@
     input[type=range]::-moz-range-thumb{height:24px;width:24px;}
     .btn{padding:11px 10px;}
   }
-
-  /* --- Celular en horizontal: alto escaso, todo mas compacto --- */
   @media (max-height:520px) and (pointer:coarse){
     #overlay{padding:4px;gap:4px;}
     .pad-btn{min-height:38px;min-width:46px;}
     .pad-g>.lbl{display:none;}
     .mtab{min-height:34px;}
     footer{display:none;}
+  }
+
+  /* ==========================================================
+     BOTÓN "MONITOREO DE IZAJE" EN EL ENCABEZADO
+     ========================================================== */
+  .mon-open-btn{
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #c026d3, #7e22ce);
+    color: #fff;
+    font-family: 'Chakra Petch', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: .04em;
+    border: 1px solid #e879f9;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 0 18px rgba(192,38,211,.4);
+    animation: monPulse 3s ease-in-out infinite;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .mon-open-btn:hover{ filter: brightness(1.15); }
+  .mon-open-btn:active{ transform: scale(.96); }
+  .mon-open-btn.on{ background: linear-gradient(135deg,#e879f9,#c026d3); }
+  @keyframes monPulse{
+    0%,100%{ box-shadow: 0 0 18px rgba(192,38,211,.4); }
+    50%{ box-shadow: 0 0 28px rgba(192,38,211,.8); }
+  }
+  @media (max-width: 900px){
+    .mon-open-btn span.mon-label{ display: none; }
+    .mon-open-btn{ padding: 6px 9px; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .mon-open-btn{ animation: none; }
+  }
+
+  /* ==========================================================
+     VENTANA FLOTANTE "MONITOREO COMPLETO DEL IZAJE"
+     ========================================================== */
+  #mon-frame{
+    width: min(920px, calc(100vw - 16px));
+    max-height: calc(100vh - 100px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(232,121,249,.55);
+    box-shadow: 0 16px 40px rgba(0,0,0,.75), 0 0 0 1px rgba(192,38,211,.25);
+  }
+  #mon-frame.min{ max-height: auto; width: auto; min-width: 280px; }
+  #mon-frame.min #mon-body{ display: none; }
+  #mon-frame .card-h h3{ color: #e879f9; }
+  #mon-body{
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 6px 2px 2px 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .mon-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 8px;
+  }
+  .mon-card{
+    background: rgba(2,10,20,.75);
+    border: 1px solid rgba(34,211,238,.2);
+    border-radius: 10px;
+    padding: 9px 10px;
+  }
+  .mon-card h4{
+    font-family: 'Chakra Petch', sans-serif;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #67e8f9;
+    letter-spacing: .05em;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px dashed rgba(148,163,184,.18);
+    text-transform: uppercase;
+  }
+  .mon-big{
+    font-family: 'Chakra Petch', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 4px;
+    letter-spacing: .01em;
+  }
+  .mon-bar-wrap{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .mon-bar{
+    flex: 1;
+    height: 8px;
+    background: #0f172a;
+    border-radius: 99px;
+    overflow: hidden;
+    position: relative;
+  }
+  .mon-bar > i{
+    display: block;
+    height: 100%;
+    width: 0;
+    border-radius: 99px;
+    background: linear-gradient(90deg,#06b6d4,#67e8f9);
+    transition: width .12s linear, background .3s;
+  }
+  .mon-causes{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+    font-size: 9.5px;
+  }
+  .mon-causes span{
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(148,163,184,.12);
+    color: #94a3b8;
+    border: 1px solid rgba(148,163,184,.2);
+    transition: background .3s, color .3s;
+  }
+  .mon-causes span.on{
+    color: #fbbf24;
+    background: rgba(245,158,11,.18);
+    border-color: rgba(245,158,11,.5);
+  }
+  .mon-axis{
+    padding: 5px 0;
+    border-bottom: 1px dashed rgba(148,163,184,.12);
+  }
+  .mon-axis:last-child{ border-bottom: 0; padding-bottom: 0; }
+  .mon-axis-name{
+    font-size: 10px;
+    font-weight: 700;
+    color: #a78bfa;
+    letter-spacing: .06em;
+    margin-bottom: 3px;
+  }
+  .mon-height-wrap{ margin: 4px 0 8px 0; }
+  .mon-height-bar{
+    position: relative;
+    width: 100%;
+    height: 90px;
+    background: linear-gradient(180deg, rgba(34,211,238,.05) 0%, rgba(34,211,238,.20) 100%);
+    border: 1px solid rgba(34,211,238,.25);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .mon-height-marker{
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #22d3ee;
+    box-shadow: 0 0 12px #22d3ee;
+    bottom: 0;
+    transition: bottom .15s linear;
+  }
+  .mon-height-label{
+    position: absolute;
+    right: 4px;
+    top: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #67e8f9;
+    font-variant-numeric: tabular-nums;
+    background: rgba(2,6,23,.7);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  .mon-pendulum-wrap{
+    display: flex;
+    justify-content: center;
+    margin-bottom: 6px;
+  }
+  #mon-pend-canvas{
+    width: 100%;
+    max-width: 260px;
+    height: auto;
+    background: rgba(15,23,42,.6);
+    border-radius: 8px;
+    border: 1px solid rgba(148,163,184,.15);
+    display: block;
+  }
+  .mon-chart-card{
+    background: rgba(2,10,20,.75);
+    border: 1px solid rgba(34,211,238,.2);
+    border-radius: 10px;
+    padding: 9px 10px;
+  }
+  #mon-chart{
+    width: 100%;
+    height: 180px;
+    display: block;
+    background: rgba(2,6,23,.6);
+    border-radius: 8px;
+  }
+  .mon-chart-legend{
+    font-size: 10.5px;
+    color: #94a3b8;
+    text-align: right;
+    margin-top: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .mon-cyc-list{
+    max-height: 240px;
+    overflow-y: auto;
+  }
+  .mon-cyc{
+    padding: 8px 10px;
+    background: rgba(15,23,42,.65);
+    border-radius: 8px;
+    border: 1px solid rgba(148,163,184,.12);
+    margin-bottom: 6px;
+  }
+  .mon-cyc-head{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #67e8f9;
+    gap: 6px;
+  }
+  .mon-cyc-head > span:first-child{
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mon-cyc-body{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px 10px;
+    font-size: 10.5px;
+    color: #cbd5e1;
+  }
+  .mon-cyc-body > div{
+    display: flex;
+    justify-content: space-between;
+    gap: 4px;
+  }
+  .mon-cyc-body b{
+    color: #fff;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .mon-summary{
+    background: linear-gradient(135deg, rgba(5,150,105,.15), rgba(2,10,20,.9));
+    border: 2px solid rgba(34,197,94,.5);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    color: #e2e8f0;
+    line-height: 1.65;
+  }
+  .mon-summary h4{
+    font-family: 'Chakra Petch', sans-serif;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #86efac;
+    letter-spacing: .08em;
+    margin-bottom: 8px;
+  }
+  .mon-summary > div{
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .mon-summary hr{
+    border: 0;
+    border-top: 1px dashed rgba(148,163,184,.3);
+    margin: 6px 0;
+  }
+  .mon-summary b{
+    color: #fff;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .mon-alarms{
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-height: 160px;
+    overflow-y: auto;
+  }
+  .mon-alarm{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+  .mon-alarm.danger{
+    background: rgba(239,68,68,.15);
+    border: 1px solid rgba(239,68,68,.5);
+    color: #fca5a5;
+    animation: monAlarmBlink 1.2s ease-in-out infinite;
+  }
+  .mon-alarm.warn{
+    background: rgba(245,158,11,.15);
+    border: 1px solid rgba(245,158,11,.5);
+    color: #fcd34d;
+  }
+  .mon-alarm i{ font-size: 13px; flex-shrink: 0; }
+  @keyframes monAlarmBlink{
+    0%,100%{ background: rgba(239,68,68,.15); }
+    50%{ background: rgba(239,68,68,.32); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .mon-alarm.danger{ animation: none; }
+  }
+  @media (max-width: 700px){
+    #mon-frame{ width: calc(100vw - 12px); max-height: calc(100vh - 80px); }
+    .mon-grid{ grid-template-columns: 1fr; }
+    .mon-big{ font-size: 16px; }
+    #mon-chart{ height: 140px; }
+    #mon-pend-canvas{ max-width: 220px; }
+    .mon-cyc-body{ font-size: 10px; }
   }
 </style>
 </head>
@@ -225,19 +547,22 @@
 
   <div id="overlay" class="absolute inset-0 z-10 flex flex-col p-2 md:p-3 gap-2 pointer-events-none">
 
-    <!-- ENCABEZADO -->
     <header class="scada-panel rounded-xl px-3 py-2 flex flex-wrap items-center justify-between gap-2 pointer-events-auto border-l-4 border-l-cyan-400">
       <div class="flex items-center gap-3 min-w-0">
         <div class="p-2 bg-gradient-to-br from-cyan-900/90 to-slate-900/90 rounded-lg border border-cyan-500/40 text-cyan-400"><i class="fa-solid fa-ship text-lg"></i></div>
         <div class="min-w-0">
           <h1 class="font-header font-bold text-base md:text-lg text-white tracking-wide flex items-center gap-2 flex-wrap">
             Terminal portuario · gemelo digital STS
-            <span class="text-[10px] px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 font-semibold">v10.1 · piloto automático</span>
+            <span class="text-[10px] px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 font-semibold">v10.2 · monitoreo de izaje</span>
           </h1>
           <p class="m-hide text-[10.5px] text-slate-400 truncate">Contenedores independientes · péndulo acoplado al carro · colisiones · interbloqueos · VGM · buque Panamax</p>
         </div>
       </div>
       <div class="flex items-center gap-2 flex-wrap">
+        <button type="button" id="btn-monitor" class="mon-open-btn" title="Abrir el panel de monitoreo completo del izaje">
+          <i class="fa-solid fa-chart-line"></i>
+          <span class="mon-label">MONITOREO DE IZAJE</span>
+        </button>
         <div id="cam-bar" class="flex flex-wrap bg-slate-900/90 rounded-lg p-1 border border-slate-700/60 gap-0.5">
           <button class="cam-btn" data-cam="global"><i class="fa-solid fa-globe"></i>Global</button>
           <button class="cam-btn" data-cam="cabina"><i class="fa-solid fa-user-gear"></i>Cabina</button>
@@ -251,6 +576,7 @@
           <button type="button" class="ui-tg on" data-tg="ctl" title="Panel de control" aria-label="Panel de control"><i class="fa-solid fa-sliders"></i></button>
           <button type="button" class="ui-tg on" data-tg="hud" title="Alineación" aria-label="Ventana de alineación"><i class="fa-solid fa-crosshairs"></i></button>
           <button type="button" class="ui-tg on" data-tg="pip" title="CCTV spreader" aria-label="Ventana CCTV"><i class="fa-solid fa-video"></i></button>
+          <button type="button" class="ui-tg on" data-tg="mon" title="Monitoreo de izaje" aria-label="Monitoreo de izaje"><i class="fa-solid fa-chart-line"></i></button>
           <button type="button" class="ui-tg on" data-tg="log" title="Registro" aria-label="Registro de telemetría"><i class="fa-solid fa-terminal"></i></button>
         </div>
         <div class="flex items-center gap-2 px-2 py-1 rounded-lg bg-slate-900/80 border border-slate-700/50">
@@ -265,9 +591,7 @@
 
     <div id="panels" class="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-2 overflow-y-auto md:overflow-hidden">
 
-      <!-- IZQUIERDA: TELEMETRÍA -->
       <aside data-mpanel="tele" class="md:col-span-3 flex flex-col gap-2 md:overflow-y-auto pointer-events-auto pr-1 min-h-0">
-
         <div class="scada-panel rounded-xl p-3 border-l-2 border-l-emerald-400">
           <div class="card-h"><h3 class="font-header text-emerald-400"><i class="fa-solid fa-lock"></i>Twistlocks y carga</h3><span id="lock-pill" class="pill pill-red">UNLOCKED</span></div>
           <div class="kv"><span>Contenedor</span><b id="c-id">—</b></div>
@@ -276,7 +600,6 @@
           <div class="kv"><span>VGM declarado</span><b id="c-vgm">—</b></div>
           <div class="kv"><span>Desviación VGM</span><b id="c-vgmdiff">—</b></div>
         </div>
-
         <div class="scada-panel rounded-xl p-3 border-l-2 border-l-amber-400">
           <div class="card-h"><h3 class="font-header text-amber-400"><i class="fa-solid fa-bolt"></i>Tensión en cables</h3><span class="formula">T = m(g·cosθ + Lω² + a)</span></div>
           <div class="kv"><span>Masa suspendida</span><b id="t-mass">—</b></div>
@@ -287,7 +610,6 @@
           <div class="bar"><i id="bar-sigma"></i></div>
           <div class="ctl-s"><span>0 MPa</span><span>Admisible 200 MPa</span></div>
         </div>
-
         <div class="scada-panel rounded-xl p-3 border-l-2 border-l-cyan-400">
           <div class="card-h"><h3 class="font-header text-cyan-400"><i class="fa-solid fa-scale-balanced"></i>Momento y capacidad</h3><span class="formula">M = W × d</span></div>
           <div class="kv"><span>Alcance desde carril lado mar</span><b id="m-reach">—</b></div>
@@ -295,7 +617,6 @@
           <div class="kv"><span>Utilización SWL (65 000 kg)</span><b id="m-util">—</b></div>
           <div class="bar"><i id="bar-util"></i></div>
         </div>
-
         <div class="scada-panel rounded-xl p-3 border-l-2 border-l-blue-400">
           <div class="card-h"><h3 class="font-header text-blue-400"><i class="fa-solid fa-wave-square"></i>Pendulación</h3><span class="formula">T = 2π√(L/g)</span></div>
           <div class="kv"><span>Longitud de izaje L</span><b id="p-l">—</b></div>
@@ -305,15 +626,13 @@
           <div class="kv"><span>Anti-sway</span><b id="p-as">—</b></div>
           <div class="bar"><i id="bar-angle" style="position:absolute;"></i></div>
         </div>
-
         <div class="scada-panel rounded-xl p-3 border-l-2 border-l-purple-400">
-          <div class="card-h"><h3 class="font-header text-purple-400"><i class="fa-solid fa-heart-pulse"></i>Fatiga de cable</h3><span class="formula" title="Curva S-N ilustrativa: 2·10⁶ ciclos a 150 MPa, m = 3">Miner · m = 3</span></div>
+          <div class="card-h"><h3 class="font-header text-purple-400"><i class="fa-solid fa-heart-pulse"></i>Fatiga de cable</h3><span class="formula">Miner · m = 3</span></div>
           <div class="kv"><span>Ciclos de izaje</span><b id="f-cycles">0</b></div>
           <div class="kv"><span>Δσ último ciclo</span><b id="f-ds">—</b></div>
           <div class="kv"><span>Daño acumulado D</span><b id="f-d">0 %</b></div>
           <div class="kv"><span>Vida remanente a ese Δσ</span><b id="f-life">—</b></div>
         </div>
-
         <div class="scada-panel rounded-xl p-3 border-l-2 border-l-teal-400">
           <div class="card-h"><h3 class="font-header text-teal-400"><i class="fa-solid fa-wind"></i>Viento</h3><span class="formula">F = ½ρv²·Cd·A</span></div>
           <div class="kv"><span>Velocidad (con ráfaga)</span><b id="w-speed">—</b></div>
@@ -322,9 +641,7 @@
         </div>
       </aside>
 
-      <!-- DERECHA: CONTROL -->
       <aside data-mpanel="ctl" class="md:col-span-3 flex flex-col gap-2 md:overflow-y-auto pointer-events-auto min-h-0">
-
         <div class="scada-panel rounded-xl p-3 border-l-2 border-l-sky-400">
           <div class="card-h"><h3 class="font-header text-sky-300"><i class="fa-solid fa-clipboard-list"></i>Orden de trabajo</h3><span id="wo-count" class="pill pill-green">0 completadas</span></div>
           <p id="wo-text" class="text-[11px] text-slate-300 leading-relaxed">—</p>
@@ -335,10 +652,8 @@
           </div>
           <p id="align-mini" class="md:hidden mt-2 text-[11px] font-bold text-amber-300">—</p>
         </div>
-
         <div class="scada-panel rounded-xl p-3 flex flex-col gap-2.5">
           <div class="card-h"><h3 class="font-header text-cyan-400"><i class="fa-solid fa-gamepad"></i>Joystick operativo</h3><i class="fa-solid fa-headset text-slate-500"></i></div>
-
           <div class="ctl" style="border-color:rgba(16,185,129,.35)">
             <div class="ctl-h"><span>Piloto automático · P</span><span id="ap-pill" class="pill pill-red">MANUAL</span></div>
             <button id="btn-auto" type="button" class="btn mt-1.5" style="background:linear-gradient(90deg,#059669,#10b981);color:#022c22;border-color:#6ee7b7"><i class="fa-solid fa-robot"></i><span id="btn-auto-t">Activar descarga automática</span></button>
@@ -348,7 +663,6 @@
               <button id="sp-1" type="button" class="on">1×</button><button id="sp-2" type="button">2×</button><button id="sp-4" type="button">4×</button>
             </div>
           </div>
-
           <div class="ctl">
             <div class="ctl-h"><label for="sl-trolley">Carro (trolley) · A / D</label><span id="lb-trolley" class="ctl-v">—</span></div>
             <input type="range" id="sl-trolley" min="-45" max="44" step="0.05" value="18">
@@ -369,7 +683,6 @@
             <input type="range" id="sl-wind" min="0" max="110" step="1" value="18">
             <div class="ctl-s"><span>Calma</span><span class="text-amber-400">54 precaución</span><span class="text-red-400">72 parar</span></div>
           </div>
-
           <div class="ctl">
             <div class="ctl-h"><span>Spreader telescópico · T</span><span id="lb-spr" class="ctl-v">40'</span></div>
             <div class="seg" role="group" aria-label="Largo del spreader">
@@ -377,14 +690,11 @@
               <button id="btn-40" type="button" class="on">40 pies</button>
             </div>
           </div>
-
           <button id="btn-lock" type="button" class="btn btn-lock idle"><i class="fa-solid fa-lock"></i><span id="btn-lock-t">LOCK · espacio</span></button>
-
           <div class="flex flex-col gap-1.5 px-1">
             <label class="chk"><input type="checkbox" id="chk-as" checked> Anti-sway automático</label>
             <label class="chk"><input type="checkbox" id="chk-bypass"> Puentear interbloqueo (entrenamiento)</label>
           </div>
-
           <div class="pt-2 border-t border-slate-800 flex flex-col gap-2">
             <button type="button" id="btn-snatch" class="btn text-slate-950 border-amber-400/40" style="background:linear-gradient(90deg,#d97706,#f59e0b)"><i class="fa-solid fa-bolt-lightning"></i>Izaje brusco</button>
             <button type="button" id="btn-estop" class="btn text-white border-red-400/40" style="background:linear-gradient(90deg,#dc2626,#be123c)"><i class="fa-solid fa-triangle-exclamation"></i>Parada de emergencia · X</button>
@@ -394,19 +704,16 @@
             </div>
           </div>
         </div>
-
         <div class="scada-panel rounded-xl p-3 text-[10.5px] text-slate-400 leading-relaxed">
           <div class="card-h"><h3 class="font-header text-slate-300"><i class="fa-solid fa-keyboard"></i>Atajos</h3></div>
           <div><kbd>A</kbd><kbd>D</kbd> carro · <kbd>W</kbd><kbd>S</kbd> izaje · <kbd>Q</kbd><kbd>E</kbd> pórtico</div>
           <div class="mt-1"><kbd>P</kbd> piloto auto · <kbd>Espacio</kbd> lock/unlock · <kbd>T</kbd> 20/40' · <kbd>X</kbd> parada · <kbd>1</kbd>–<kbd>6</kbd> cámaras</div>
-          <div class="mt-1 text-slate-400">En celular y tablet: mando táctil abajo, pestañas Vista / Telemetría / Control, y un dedo para orbitar la cámara (dos dedos para acercar).</div>
-          <div class="mt-1 text-slate-400">Los iconos del encabezado ocultan o muestran cada panel; las ventanas de alineación y CCTV se arrastran por su barra y se minimizan.</div>
-          <div class="mt-1.5 text-slate-500">Ciclo: ubicar sobre el contenedor marcado → bajar hasta asentar → LOCK → izar → trasladar → bajar sobre el camión → UNLOCK → izar.</div>
+          <div class="mt-1 text-slate-400">Los iconos del encabezado ocultan o muestran cada panel. El botón morado abre el <b class="text-fuchsia-300">monitoreo completo del izaje</b>: tensión, fuerzas, altura, pendulación, gráfica en vivo e historial de ciclos.</div>
         </div>
       </aside>
     </div>
 
-    <!-- VENTANAS FLOTANTES: se arrastran por su barra y se minimizan -->
+    <!-- VENTANA: ALINEACIÓN -->
     <div id="align-hud" class="scada-panel rounded-xl p-3 pointer-events-auto win min">
       <div class="card-h win-bar">
         <h3 class="font-header text-cyan-300" id="al-title"><i class="fa-solid fa-crosshairs"></i>Alineación del spreader</h3>
@@ -420,6 +727,7 @@
       <div id="al-banner" class="mt-2 text-center text-[12px] font-bold font-header py-1.5 rounded-md border">—</div>
     </div>
 
+    <!-- VENTANA: CCTV SPREADER -->
     <div id="pip-frame" class="pointer-events-auto win">
       <div class="pip-bar win-bar">
         <span class="truncate"><i class="fa-solid fa-video"></i> CCTV spreader</span>
@@ -432,7 +740,185 @@
       <div id="pip-view"></div>
     </div>
 
-    <!-- HUD COMPACTO Y MANDO TACTIL (celular / tablet) -->
+    <!-- VENTANA: MONITOREO COMPLETO DEL IZAJE -->
+    <div id="mon-frame" class="scada-panel rounded-xl p-3 pointer-events-auto win">
+      <div class="card-h win-bar">
+        <h3 class="font-header" style="color:#e879f9"><i class="fa-solid fa-chart-line"></i>Monitoreo completo del izaje</h3>
+        <div class="win-tools">
+          <span id="mon-status" class="pill pill-green">STANDBY</span>
+          <button type="button" class="win-btn" data-min="mon-frame" aria-label="Minimizar o ampliar"><i class="fa-solid fa-chevron-down"></i></button>
+          <button type="button" class="win-btn" data-close="mon" aria-label="Ocultar"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </div>
+
+      <div id="mon-body">
+        <div class="mon-grid">
+
+          <div class="mon-card">
+            <h4>Contenedor</h4>
+            <div class="mon-big" id="mon-cid">—</div>
+            <div class="kv"><span>Tipo / largo</span><b id="mon-clen">—</b></div>
+            <div class="kv"><span>Masa contenedor</span><b id="mon-cmass">—</b></div>
+            <div class="kv"><span>Spreader</span><b id="mon-sprmass">—</b></div>
+            <div class="kv"><span>Carga total suspendida</span><b id="mon-total">—</b></div>
+            <div class="kv"><span>VGM declarado</span><b id="mon-vgm">—</b></div>
+            <div class="kv"><span>Diferencia medida − VGM</span><b id="mon-vgmdiff">—</b></div>
+            <div class="kv"><span>Utilización SWL</span><b id="mon-swl">—</b></div>
+            <div class="kv"><span>Twistlocks</span><b id="mon-lock">—</b></div>
+          </div>
+
+          <div class="mon-card">
+            <h4>Tensión de cables</h4>
+            <div class="mon-big" id="mon-ten-kn">0.0 kN</div>
+            <div class="kv"><span>Fuerza en N</span><b id="mon-ten-n">0 N</b></div>
+            <div class="kv"><span>Por cable (4 en paralelo)</span><b id="mon-ten-per">—</b></div>
+            <div class="kv"><span>Esfuerzo σ = F/A</span><b id="mon-sigma">0.00 MPa</b></div>
+            <div class="kv"><span>Factor dinámico</span><b id="mon-daf">—</b></div>
+            <div class="kv"><span>Área de sección (4 cables)</span><b id="mon-area">—</b></div>
+            <div class="kv"><span>Límite admisible</span><b id="mon-adm">200 MPa</b></div>
+            <div class="mon-bar-wrap">
+              <div class="mon-bar"><i id="mon-bar-sigma"></i></div>
+              <span id="mon-sigma-state" class="pill pill-green">NORMAL</span>
+            </div>
+            <div class="mon-causes" id="mon-tension-causes"></div>
+          </div>
+
+          <div class="mon-card">
+            <h4>Fuerzas del izaje</h4>
+            <div class="kv"><span>Peso de la carga</span><b id="mon-fw">—</b></div>
+            <div class="kv"><span>Peso en N</span><b id="mon-fwn">—</b></div>
+            <div class="kv"><span>Fuerza gravitacional total</span><b id="mon-fg">—</b></div>
+            <div class="kv"><span>Tensión de cables</span><b id="mon-ft">—</b></div>
+            <div class="kv"><span>Fuerza dinámica |m·a|</span><b id="mon-fd">—</b></div>
+            <div class="kv"><span>Fuerza del viento</span><b id="mon-fwind">—</b></div>
+            <div class="kv"><span>Resultante √(T² + Fv²)</span><b id="mon-fres">—</b></div>
+            <div class="kv"><span>Aceleración vertical</span><b id="mon-av">—</b></div>
+            <div class="kv"><span>Aceleración horizontal (carro)</span><b id="mon-ah">—</b></div>
+          </div>
+
+          <div class="mon-card">
+            <h4>Altura</h4>
+            <div class="mon-height-wrap">
+              <div class="mon-height-bar">
+                <div class="mon-height-marker" id="mon-hmarker"></div>
+                <div class="mon-height-label" id="mon-hlabel">—</div>
+              </div>
+            </div>
+            <div class="kv"><span>Altura del spreader</span><b id="mon-h">—</b></div>
+            <div class="kv"><span>Longitud del cable izado</span><b id="mon-cable">—</b></div>
+            <div class="kv"><span>Distancia al suelo</span><b id="mon-dground">—</b></div>
+            <div class="kv"><span>Distancia al apoyo actual</span><b id="mon-dsup">—</b></div>
+            <div class="kv"><span>Velocidad vertical (positiva = sube)</span><b id="mon-vv">—</b></div>
+          </div>
+
+          <div class="mon-card">
+            <h4>Estado del movimiento</h4>
+            <div class="mon-axis">
+              <div class="mon-axis-name">CARRO</div>
+              <div class="kv"><span>Posición</span><b id="mon-tpos">—</b></div>
+              <div class="kv"><span>Velocidad</span><b id="mon-tvel">—</b></div>
+              <div class="kv"><span>Aceleración</span><b id="mon-tacc">—</b></div>
+              <div class="kv"><span>Dirección</span><b id="mon-tdir">—</b></div>
+            </div>
+            <div class="mon-axis">
+              <div class="mon-axis-name">IZAJE</div>
+              <div class="kv"><span>Longitud cable</span><b id="mon-hpos">—</b></div>
+              <div class="kv"><span>Velocidad vertical</span><b id="mon-hvel">—</b></div>
+              <div class="kv"><span>Aceleración vertical</span><b id="mon-hacc">—</b></div>
+              <div class="kv"><span>Dirección</span><b id="mon-hdir">—</b></div>
+            </div>
+            <div class="mon-axis">
+              <div class="mon-axis-name">PÓRTICO</div>
+              <div class="kv"><span>Posición</span><b id="mon-gpos">—</b></div>
+              <div class="kv"><span>Velocidad</span><b id="mon-gvel">—</b></div>
+              <div class="kv"><span>Aceleración</span><b id="mon-gacc">—</b></div>
+              <div class="kv"><span>Dirección</span><b id="mon-gdir">—</b></div>
+            </div>
+            <div class="mon-axis">
+              <div class="mon-axis-name">SPREADER</div>
+              <div class="kv"><span>Longitud actual</span><b id="mon-slen">—</b></div>
+              <div class="kv"><span>Orientación (θ)</span><b id="mon-sorient">—</b></div>
+              <div class="kv"><span>Estado LOCK</span><b id="mon-slock">—</b></div>
+            </div>
+          </div>
+
+          <div class="mon-card">
+            <h4>Pendulación / anti-sway</h4>
+            <div class="mon-pendulum-wrap">
+              <canvas id="mon-pend-canvas" width="260" height="150"></canvas>
+            </div>
+            <div class="kv"><span>Ángulo θ</span><b id="mon-theta">—</b></div>
+            <div class="kv"><span>Velocidad angular ω</span><b id="mon-omega">—</b></div>
+            <div class="kv"><span>Desplazamiento horizontal</span><b id="mon-sway">—</b></div>
+            <div class="kv"><span>Longitud de péndulo L</span><b id="mon-pl">—</b></div>
+            <div class="kv"><span>Período T = 2π√(L/g)</span><b id="mon-per">—</b></div>
+            <div class="kv"><span>Anti-sway automático</span><b id="mon-as">—</b></div>
+          </div>
+
+          <div class="mon-card">
+            <h4>Momento de carga</h4>
+            <div class="mon-big" id="mon-mom-big">0 kN·m</div>
+            <div class="kv"><span>Alcance (desde carril mar)</span><b id="mon-mreach">—</b></div>
+            <div class="kv"><span>Peso de la carga</span><b id="mon-mw">—</b></div>
+            <div class="kv"><span>Capacidad SWL</span><b id="mon-mswl">65 t</b></div>
+            <div class="kv"><span>Utilización</span><b id="mon-mutil">—</b></div>
+            <div class="mon-bar-wrap">
+              <div class="mon-bar"><i id="mon-bar-moment"></i></div>
+              <span id="mon-mom-state" class="pill pill-green">NORMAL</span>
+            </div>
+          </div>
+
+          <div class="mon-card">
+            <h4>Viento</h4>
+            <div class="mon-big" id="mon-wind-big">0 km/h</div>
+            <div class="kv"><span>Dirección</span><b id="mon-wdir">← desde el mar</b></div>
+            <div class="kv"><span>Ráfaga instantánea</span><b id="mon-wgust">—</b></div>
+            <div class="kv"><span>Fuerza sobre la carga</span><b id="mon-wforce">—</b></div>
+            <div class="kv"><span>Estado</span><b id="mon-wstate">🟢 NORMAL</b></div>
+          </div>
+
+        </div>
+
+        <div class="mon-chart-card">
+          <div class="card-h">
+            <h3 class="font-header text-cyan-300"><i class="fa-solid fa-chart-area"></i>Tendencia en tiempo real</h3>
+            <div class="seg" role="group" aria-label="Variable a graficar" style="max-width:420px">
+              <button type="button" data-mon="tension" class="on">Tensión</button>
+              <button type="button" data-mon="weight">Peso</button>
+              <button type="button" data-mon="height">Altura</button>
+              <button type="button" data-mon="theta">Ángulo</button>
+              <button type="button" data-mon="velocity">Velocidad</button>
+              <button type="button" data-mon="moment">Momento</button>
+            </div>
+          </div>
+          <canvas id="mon-chart" width="860" height="180"></canvas>
+          <div class="mon-chart-legend" id="mon-chart-legend">Tensión (kN) · últimos ~24 s</div>
+        </div>
+
+        <div class="mon-chart-card">
+          <div class="card-h">
+            <h3 class="font-header text-emerald-300"><i class="fa-solid fa-clock-rotate-left"></i>Historial del ciclo</h3>
+            <span id="mon-cyc-count" class="pill pill-green">0 ciclos</span>
+          </div>
+          <div id="mon-cyc-list" class="mon-cyc-list">
+            <div class="text-[11px] text-slate-500 py-2 text-center">Sin ciclos registrados todavía. Complete un izaje (LOCK → UNLOCK en destino) para registrar el primero.</div>
+          </div>
+        </div>
+
+        <div id="mon-summary" class="mon-summary" style="display:none"></div>
+
+        <div class="mon-chart-card">
+          <div class="card-h">
+            <h3 class="font-header text-red-300"><i class="fa-solid fa-triangle-exclamation"></i>Alarmas activas</h3>
+          </div>
+          <div id="mon-alarms" class="mon-alarms">
+            <div class="text-[11px] text-slate-500 py-2 text-center">Sin alarmas activas</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HUD COMPACTO Y MANDO TACTIL -->
     <div id="m-hud">—</div>
 
     <div id="mdock" class="pointer-events-auto">
@@ -475,7 +961,6 @@
       </div>
     </div>
 
-    <!-- LOG -->
     <footer id="logbar" class="scada-panel rounded-xl px-3 py-2 flex justify-between items-start gap-3 text-xs pointer-events-auto border-r-4 border-r-cyan-400">
       <div class="flex items-start gap-3 min-w-0 flex-1">
         <div class="px-2 py-1 rounded bg-slate-900 border border-slate-700 text-[10.5px] text-cyan-400 flex items-center gap-1.5 shrink-0"><i class="fa-solid fa-terminal"></i>Telemetría</div>
@@ -485,15 +970,12 @@
     </footer>
   </div>
 </div>
-
 <script>
 'use strict';
 // =====================================================================
 //  UTILIDADES
 // =====================================================================
 const $ = id => document.getElementById(id);
-
-// Dispositivo: en celular/tablet se baja la carga grafica y se activa el mando tactil
 const IS_TOUCH = (window.matchMedia && matchMedia('(pointer:coarse)').matches) || navigator.maxTouchPoints > 0;
 const IS_MOBILE = IS_TOUCH && (Math.min(screen.width, screen.height) <= 900 || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent));
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -501,11 +983,9 @@ const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const kg = n => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' kg';
 const ft = len => (len > 10 ? "40'" : "20'");
 const fmtId = id => id.slice(0, 4) + ' ' + id.slice(4, 10) + ' ' + id.slice(10);
-
 function rng(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const rand = rng(20260919);
 
-// Dígito de control ISO 6346
 const ISO_VAL = (() => { const m = {}; let v = 10; for (let i = 0; i < 26; i++) { if (v % 11 === 0) v++; m[String.fromCharCode(65 + i)] = v; v++; } return m; })();
 function isoCheck(code){ let s = 0; for (let i = 0; i < 10; i++) { const ch = code[i]; s += (/[A-Z]/.test(ch) ? ISO_VAL[ch] : +ch) * Math.pow(2, i); } return (s % 11) % 10; }
 function makeId(prefix){ const base = prefix + String(Math.floor(rand() * 1e6)).padStart(6, '0'); return base + isoCheck(base); }
@@ -514,12 +994,12 @@ function makeId(prefix){ const base = prefix + String(Math.floor(rand() * 1e6)).
 //  CONSTANTES FÍSICAS Y GEOMÉTRICAS
 // =====================================================================
 const G = 9.81;
-const ROPE_Y = 37.0;          // salida de cables en las poleas del carro (m)
-const SPR_H = 1.0;            // del punto de cable al fondo del spreader (m)
-const SPR_MASS = 11000;       // spreader + headblock (kg)
-const SWL = 65000;            // capacidad bajo spreader (kg)
-const ROPE_AREA = 0.004;      // sección metálica total de cables (m²)
-const SIGMA_ADM = 200;        // MPa
+const ROPE_Y = 37.0;
+const SPR_H = 1.0;
+const SPR_MASS = 11000;
+const SWL = 65000;
+const ROPE_AREA = 0.004;
+const SIGMA_ADM = 200;
 const SN_REF = 150, SN_N = 2e6, SN_M = 3;
 const C_W = 2.438, C_H = 2.591, L40 = 12.192, L20 = 6.058;
 const DOCK_TOP = 6.5, DECK_TOP = 12.6, WATER_Y = -0.6, TRAILER_TOP = 8.15, WATERSIDE_X = -17;
@@ -528,12 +1008,12 @@ const BRIDGE = { x0: 11.5, x1: 30.5, z0: -98, z1: -74, top: 26.5 };
 const EPS = 0.06;
 
 const BRANDS = [
-  { name: 'MAERSK',      pre: 'MSKU', color: '#3f93b8' },
-  { name: 'MSC',         pre: 'MEDU', color: '#8c6a24' },
+  { name: 'MAERSK', pre: 'MSKU', color: '#3f93b8' },
+  { name: 'MSC', pre: 'MEDU', color: '#8c6a24' },
   { name: 'HAPAG-LLOYD', pre: 'HLXU', color: '#c9571c' },
-  { name: 'CMA CGM',     pre: 'CMAU', color: '#1f4f8f' },
-  { name: 'ONE',         pre: 'ONEU', color: '#b0205e' },
-  { name: 'EVERGREEN',   pre: 'EGHU', color: '#2f7a3a' }
+  { name: 'CMA CGM', pre: 'CMAU', color: '#1f4f8f' },
+  { name: 'ONE', pre: 'ONEU', color: '#b0205e' },
+  { name: 'EVERGREEN', pre: 'EGHU', color: '#2f7a3a' }
 ];
 
 // =====================================================================
@@ -541,9 +1021,9 @@ const BRANDS = [
 // =====================================================================
 function makeAxis(x, vmax, amax, min, max){ return { x, v: 0, a: 0, target: x, vmax, amax, min, max, key: 0, hold: false }; }
 const S = {
-  trolley: makeAxis(18, 4.0, 0.55, -45, 44),    // 240 m/min
-  hoist:   makeAxis(12, 3.0, 0.6, 3, 44),       // 90 / 180 m/min
-  gantry:  makeAxis(7.5, 0.75, 0.25, -65, 65),  // 45 m/min
+  trolley: makeAxis(18, 4.0, 0.55, -45, 44),
+  hoist:   makeAxis(12, 3.0, 0.6, 3, 44),
+  gantry:  makeAxis(7.5, 0.75, 0.25, -65, 65),
   theta: 0, omega: 0, zOff: 0,
   windKmh: 18, windNow: 0, windF: 0,
   antiSway: true, bypass: false,
@@ -565,6 +1045,31 @@ const ropes = [], containers = [], trucks = [], logs = [];
 let order = null, cameraMode = 'global', time = 0;
 const AUTO = { on: false, phase: 'idle', t: 0, tries: 0, truck: null, label: '—', bias: 0 };
 let SIM_SPEED = 1;
+
+// ---------------------------------------------------------------------
+//  ESTADO DEL MONITOREO COMPLETO DEL IZAJE (nuevo)
+//  Reutiliza S, SPR_MASS, SWL, ROPE_AREA, SIGMA_ADM, G.
+// ---------------------------------------------------------------------
+const MON = {
+  win: null,
+  chartVar: 'tension',
+  history: [],           // muestras {tension, weight, height, theta, velocity, moment}
+  maxPoints: 200,
+  cycle: null,           // ciclo en curso (null si inactivo)
+  cycles: [],            // historial (máx 20)
+  lastAlarms: [],
+  chartAcc: 0,
+  uiAcc: 0,
+  sampleAcc: 0
+};
+const MON_LABELS = {
+  tension:  'Tensión (kN) · últimos ~24 s',
+  weight:   'Peso suspendido (t) · últimos ~24 s',
+  height:   'Altura del spreader (m) · últimos ~24 s',
+  theta:    'Ángulo de pendulación (°) · últimos ~24 s',
+  velocity: 'Velocidad de izaje (m/s) · últimos ~24 s',
+  moment:   'Momento de carga (kN·m) · últimos ~24 s'
+};
 
 // =====================================================================
 //  HELPERS 3D
@@ -666,7 +1171,6 @@ function createDock(){
     g.add(cyl(V(-70, DOCK_TOP, z), V(-70, 22, z), 0.15, mat(0x2a343a, 0.35, 0.8), 10));
     box(2.5, 0.3, 0.8, new THREE.MeshStandardMaterial({ color: 0xe9eee0, emissive: 0xfff1c8, emissiveIntensity: 0.25 }), -69, 21.8, z, g);
   }
-  // amarras del buque
   const rope = mat(0xd8cfa8, 0.9, 0);
   for (const z of [-60, -40, 40, 60]) g.add(cyl(V(-1, DOCK_TOP + 1, z * 1.6 > 0 ? z + 30 : z - 30), V(7.5, 11.5, z), 0.08, rope, 6));
   scene.add(g);
@@ -680,10 +1184,8 @@ function createShip(){
   box(30, 0.6, 198, deck, 21, 12.3, 0, sg);
   const bow = new THREE.Mesh(new THREE.ConeGeometry(14.5, 28, 24), red); bow.rotation.x = Math.PI / 2; bow.position.set(21, 4.8, 112); bow.castShadow = true; sg.add(bow);
   const bulb = new THREE.Mesh(new THREE.SphereGeometry(3.5, 20, 12), red); bulb.scale.set(1, 0.65, 2); bulb.position.set(21, 2.2, 125); sg.add(bulb);
-  // tapas de escotilla
   const hatch = mat(0x33403f, 0.7, 0.3);
   for (let i = 0; i < 10; i++) { const h = box(26, 0.12, 12.8, hatch, 21, DECK_TOP + 0.02, -60 + i * 13.5, sg); h.castShadow = false; }
-  // superestructura
   const white = mat(0xd3dde6, 0.4, 0.15), glass = mat(0x142028, 0.1, 0.85);
   box(19, 14, 24, white, 21, 19.5, -86, sg);
   box(19.2, 3.6, 24.2, glass, 21, 23.2, -86, sg);
@@ -696,7 +1198,7 @@ function createShip(){
 }
 
 // =====================================================================
-//  CONTENEDORES (objetos físicos independientes)
+//  CONTENEDORES
 // =====================================================================
 let geo40, geo20, cMats = [];
 function containerMaterials(){
@@ -723,7 +1225,6 @@ function containerMaterials(){
     cMats.push([sm, sm, plain, plain, dm, dm]);
   }
 }
-
 function addContainer(len, x, yBottom, z, brandIdx, loc = ''){
   const b = BRANDS[brandIdx];
   const mesh = new THREE.Mesh(len > 10 ? geo40 : geo20, cMats[brandIdx]);
@@ -736,7 +1237,6 @@ function addContainer(len, x, yBottom, z, brandIdx, loc = ''){
   const c = { id: makeId(b.pre), brand: b.name, len, mesh, mass, vgm, state: 'rest', vy: 0, loc, lockPos: null };
   containers.push(c); return c;
 }
-
 function fillShip(){
   const rowLbl = ['10', '08', '06', '04', '02', '01', '03', '05', '07', '09'];
   for (let i = 0; i < 10; i++) {
@@ -784,7 +1284,6 @@ function createCrane(){
   const lampM = new THREE.MeshStandardMaterial({ color: 0xfff6d8, emissive: 0xfff2c0, emissiveIntensity: 0.6 });
   for (const bx of [-10, 10, 30]) for (const z of [-3.1, 3.1]) box(1.1, 0.3, 0.5, lampM, bx, 36.25, z, craneGroup);
 
-  // Carro (trolley) con cabina colgante
   trolleyGroup = new THREE.Group(); craneGroup.add(trolleyGroup);
   box(5.8, 1.2, 5.6, DK, 0, 39.3, 0, trolleyGroup);
   box(5.2, 0.3, 5.0, Y, 0, 40.05, 0, trolleyGroup);
@@ -807,8 +1306,8 @@ function createSpreader(){
   box(1.8, 0.5, 2.8, DK, 0, -0.25, 0, g);
   wheel(0.28, 0.2, ST, -0.6, 0.02, 0, 'z', g); wheel(0.28, 0.2, ST, 0.6, 0.02, 0, 'z', g);
   const frame = box(1.9, 0.45, 1, Y, 0, -0.72, 0, g);
-  const rails = [box(0.24, 0.36, 1, Y2(), -1.06, -0.74, 0, g), box(0.24, 0.36, 1, Y2(), 1.06, -0.74, 0, g)];
   function Y2(){ return mat(0xc99414, 0.4, 0.45); }
+  const rails = [box(0.24, 0.36, 1, Y2(), -1.06, -0.74, 0, g), box(0.24, 0.36, 1, Y2(), 1.06, -0.74, 0, g)];
   const ends = [box(2.44, 0.42, 0.34, Y, 0, -0.74, 0, g), box(2.44, 0.42, 0.34, Y, 0, -0.74, 0, g)];
   const tw = [], flip = [];
   for (let i = 0; i < 4; i++) {
@@ -889,10 +1388,8 @@ function createYard(){
   createTruck('T-02', -28.5, -6, 0x2f6fb0, false);
   const t3 = createTruck('T-03', -36, 34.5, 0x4a7a2e, true);
   t3.cargo = addContainer(L40, -36, TRAILER_TOP, 34.5, 3);
-  // pila en muelle (dentro del alcance posterior)
   addContainer(L40, -44.5, DOCK_TOP, 21, 0); addContainer(L40, -44.5, DOCK_TOP + C_H, 21, 5);
   addContainer(L20, -44.5, DOCK_TOP, -20, 2); addContainer(L20, -44.5, DOCK_TOP, -26.2, 4);
-  // personal con EPP
   const w1 = createWorker(0xff8800); w1.position.set(-20.6, DOCK_TOP, 2); w1.rotation.y = -Math.PI / 3; scene.add(w1);
   const w2 = createWorker(0xccff00); w2.position.set(-31, DOCK_TOP, -18); w2.rotation.y = Math.PI / 4; scene.add(w2);
   const w3 = createWorker(0xff6644); w3.position.set(-40, DOCK_TOP, 50); w3.rotation.y = Math.PI / 6; scene.add(w3);
@@ -970,8 +1467,6 @@ function stepAxis(ax, dt, extraAcc = 0, amaxMul = 1, vmaxOverride){
   if (ax.x > ax.max) { ax.x = ax.max; if (ax.v > 0) ax.v = 0; }
   ax.a = a;
 }
-// Anti-sway por realimentación de estados [x, v, θ, ω] con asignación de polos
-// (péndulo con ζ = 0.7 a su frecuencia natural, carro con ωt = 0.55 rad/s, ζ = 0.9), ganancias recalculadas con L.
 function antiSwayGains(L){
   const w2 = G / L, w = Math.sqrt(w2), zp = 0.7, wt = 0.55, zt = 0.9;
   const p1a = 2 * zp * w, p1b = w2, p2a = 2 * zt * wt, p2b = wt * wt;
@@ -992,15 +1487,13 @@ function stepTrolleyAntiSway(ax, dt, L){
   ax.a = a;
 }
 function stoppingTarget(ax, mul = 1){ return clamp(ax.x + ax.v * Math.abs(ax.v) / (2 * ax.amax * mul), ax.min, ax.max); }
-
 function windForce(){
   const v = S.windKmh / 3.6;
   const gust = 1 + 0.22 * Math.sin(time * 0.73) + 0.12 * Math.sin(time * 1.91 + 1.3) + 0.06 * Math.sin(time * 3.7);
   const ve = v * Math.max(0.3, gust); S.windNow = ve * 3.6;
   const A = S.held ? S.held.len * C_H : S.sprLenCur * 0.6;
-  return -0.5 * 1.225 * ve * ve * 1.3 * A;   // viento desde el mar → empuja hacia −x
+  return -0.5 * 1.225 * ve * ve * 1.3 * A;
 }
-
 function footprint(){ return S.held ? [C_W / 2, S.held.len / 2, SPR_H + C_H] : [1.22, S.sprLenCur / 2, SPR_H]; }
 
 function land(sup, sx, sz){
@@ -1031,7 +1524,6 @@ function land(sup, sx, sz){
     } else log(`Spreader apoyado sobre ${supName(sup)} — cable flojo`);
   }
 }
-
 function finishCycle(){
   if (!S.cycleActive) return;
   const slack = 0.08 * SPR_MASS * G / ROPE_AREA / 1e6;
@@ -1045,9 +1537,7 @@ function step(dt){
   const est = S.estop > 0; if (est) S.estop -= dt;
   S.trolley.hold = S.gantry.hold = S.landed;
   S.hoist.hold = !!S.locking;
-  // telescópico
   if (Math.abs(S.sprLenCur - S.sprLenTarget) > 0.001) { S.sprLenCur += clamp(S.sprLenTarget - S.sprLenCur, -1.6 * dt, 1.6 * dt); setSpreaderLength(S.sprLenCur); }
-
   if (AUTO.on) autoStep(dt);
   const prev = { tx: S.trolley.x, gz: S.gantry.x, th: S.theta, om: S.omega };
   const N = 4, h = dt / N, mul = est ? 3 : 1;
@@ -1064,14 +1554,11 @@ function step(dt){
       S.omega += alpha * h; S.theta += S.omega * h;
     }
   }
-
-  // bloqueo / desbloqueo animado
   if (S.locking) {
     S.locking.t += dt; const p = clamp(S.locking.t / 0.7, 0, 1);
     S.twist = S.locking.on ? p : 1 - p;
     if (p >= 1) { const { on, c } = S.locking; S.locking = null; if (on) doLock(c); else doUnlock(); }
   }
-
   const [hx, hz, off] = footprint();
   let L = S.hoist.x, sx, sy, sz;
   if (!S.landed) {
@@ -1107,8 +1594,6 @@ function step(dt){
     }
   }
   S.prevSp.copy(S.sp); S.sp.set(sx, sy, sz);
-
-  // tensión y esfuerzos
   L = S.hoist.x;
   const mTot = SPR_MASS + (S.held ? S.held.mass : 0);
   let T = S.landed ? 0.08 * SPR_MASS * G : mTot * (G * Math.cos(S.theta) + L * S.omega * S.omega - S.hoist.a);
@@ -1121,7 +1606,6 @@ function step(dt){
   S.moment = (S.landed ? SPR_MASS * 0.08 : mTot) * G / 1000 * S.reach;
   if (S.cycleActive && !S.landed) S.cycleMax = Math.max(S.cycleMax, S.sigma);
 
-  // visual de grúa y spreader
   craneGroup.position.z = S.gantry.x;
   trolleyGroup.position.x = S.trolley.x;
   SPR.g.position.copy(S.sp);
@@ -1130,24 +1614,20 @@ function step(dt){
   const col = S.locked ? 0x22ff66 : (ready ? ((time * 2 | 0) % 2 ? 0xffb020 : 0x553300) : 0xff3344);
   SPR.indMat.color.setHex(col); SPR.indMat.emissive.setHex(col);
   updateRopes();
-
   updateContainers(dt);
   updateTrucks(dt);
   updateAmbient(dt);
   updateHighlight();
 }
 
-
 // =====================================================================
-//  PILOTO AUTOMÁTICO · ciclo de descarga buque → camión
-//  Usa los mismos ejes, anti-sway, interbloqueos y twistlocks que el operador.
+//  PILOTO AUTOMÁTICO
 // =====================================================================
 function autoSafeL(){
   let top = Math.max(BRIDGE.top, TRAILER_TOP);
   for (const c of containers) if (c.state === 'rest' || c.state === 'transit') top = Math.max(top, c.mesh.position.y + C_H / 2);
   return clamp(ROPE_Y - top - footprint()[2] - 1.2, S.hoist.min, S.hoist.max);
 }
-// descenso en dos tramos: rápido hasta 0.6 m sobre el apoyo y luego aproximación lenta (< 0.5 m/s al contacto)
 function autoLowerL(x, z){
   const [hx, hz, off] = footprint();
   const sup = supportAt(x, z, hx, hz, S.held);
@@ -1157,12 +1637,9 @@ function autoLowerL(x, z){
 }
 function aMove(ax, v){ ax.key = 0; ax.target = clamp(v, ax.min, ax.max); }
 function aAt(ax, tol = 0.05){ return Math.abs(ax.x - ax.target) < tol && Math.abs(ax.v) < 0.05; }
-// con viento el péndulo queda con un ángulo de equilibrio: se exige que el spreader (no el carro) esté sobre el objetivo y sin oscilar
 function aSteady(){ return Math.abs(S.omega) < 0.01 && Math.abs(S.zOff) < 0.05 && Math.abs(S.trolley.v) < 0.08; }
 function aOver(x, z){ return Math.abs(S.sp.x - x) < 0.15 && Math.abs(S.gantry.x - z) < 0.03 && Math.abs(S.gantry.v) < 0.05; }
-// el viento sostiene un ángulo de equilibrio y el lazo anti-sway deja un sesgo: se corrige con un integrador sobre el error del spreader
 function aTrolleyTo(x, dt){ AUTO.bias = clamp(AUTO.bias + (x - S.sp.x) * 0.35 * dt, -3, 3); aMove(S.trolley, x + AUTO.bias); }
-// si una ráfaga saca al spreader de la vertical del objetivo, se detiene el descenso hasta recentrar
 function aDescend(x, z){
   if (S.landed) return;
   if (Math.abs(S.sp.x - x) > 0.22 || Math.abs(S.omega) > 0.02) { if (Math.abs(S.hoist.target - S.hoist.x) > 0.01 || S.hoist.v > 0) aMove(S.hoist, S.hoist.x); }
@@ -1196,9 +1673,8 @@ function autoStep(dt){
   if (AUTO.phase === 'wind') aGo('raise', 'Reanudando');
   if (AUTO.t > 90 && AUTO.phase !== 'waitTruck') { log('Piloto automático: fase excedió 90 s, reiniciando ciclo', true); aGo(S.held ? 'lift' : 'raise', 'Reintentando'); }
   const c = order && order.c;
-
   switch (AUTO.phase) {
-    case 'raise': {                          // izar vacío a altura segura y ajustar telescópico
+    case 'raise': {
       if (S.held) { aGo('lift', 'Izando carga'); break; }
       if (S.locked || S.locking) break;
       aMove(S.hoist, autoSafeL());
@@ -1208,7 +1684,7 @@ function autoStep(dt){
       if (aAt(S.hoist, 0.4) && !S.landed) aGo('toShip', `Trasladando a ${order.c.loc}`);
       break;
     }
-    case 'toShip': {                          // carro + pórtico sobre el contenedor objetivo
+    case 'toShip': {
       if (!c || c.state !== 'rest' || !isTop(c)) { order = null; newOrder(); aGo('raise', 'Nueva orden'); break; }
       const p = c.mesh.position;
       if (Math.abs(S.trolley.x - p.x) > 1.5) aMove(S.trolley, p.x); else aTrolleyTo(p.x, dt);
@@ -1278,7 +1754,7 @@ function autoStep(dt){
 }
 
 // =====================================================================
-//  LOCK / UNLOCK
+//  LOCK / UNLOCK (con enganche a MON)
 // =====================================================================
 function lockReadiness(){
   if (S.locked) return { ok: false, reason: 'ya bloqueado' };
@@ -1309,17 +1785,20 @@ function doLock(c){
   c.lockPos = c.mesh.position.clone();
   SPR.g.add(c.mesh); c.mesh.position.set(0, -SPR_H - C_H / 2, 0); c.mesh.rotation.set(0, 0, 0);
   log(`LOCKED · twistlocks girados 90° en ${fmtId(c.id)} (${ft(c.len)})`);
+  // NUEVO: iniciar ciclo de monitoreo
+  monStartCycle(c);
 }
 function doUnlock(){
   const c = S.held; if (!c) return;
   const wp = new THREE.Vector3(); c.mesh.getWorldPosition(wp);
   scene.add(c.mesh); c.mesh.position.copy(wp); c.mesh.rotation.set(0, 0, 0);
   S.held = null; S.locked = false;
+  // NUEVO: cerrar el ciclo con el estado final adecuado
   if (S.landed) {
     const sup = S.landedSup;
     c.mesh.position.y = sup.y + C_H / 2;
-    if (sup.type === 'water') { c.state = 'sink'; log(`¡CONTENEDOR ${fmtId(c.id)} AL AGUA!`, true); flash(); }
-    else { c.state = 'rest'; placed(c, sup); }
+    if (sup.type === 'water') { c.state = 'sink'; log(`¡CONTENEDOR ${fmtId(c.id)} AL AGUA!`, true); flash(); monEndCycle('AL AGUA'); }
+    else { c.state = 'rest'; placed(c, sup); monEndCycle('COMPLETADO'); }
     S.landedSup = { y: c.mesh.position.y + C_H / 2, type: 'container', ref: c };
     S.landedSnap = c.state === 'rest';
     log(`UNLOCKED · ${fmtId(c.id)} liberado sobre ${supName(sup)}`);
@@ -1328,6 +1807,7 @@ function doUnlock(){
     c.state = 'fall'; c.vy = 0;
     log(`¡CARGA LIBERADA EN ALTURA! ${fmtId(c.id)} en caída libre`, true); flash();
     S.omega += (Math.random() - 0.5) * 0.08;
+    monEndCycle('CARGA LIBERADA');
   }
 }
 function placed(c, sup){
@@ -1359,7 +1839,6 @@ function updateContainers(dt){
     }
   }
 }
-
 function sprClearOf(c){
   const p = c.mesh.position, [, , off] = footprint();
   return (S.sp.y - off) > p.y + C_H / 2 + 1.0 || Math.abs(S.sp.x - p.x) > 2.5;
@@ -1389,7 +1868,6 @@ function updateTrucks(dt){
     }
   }
 }
-
 function updateAmbient(dt){
   if (radarMesh) radarMesh.rotation.y += dt * 2.5;
   const gulls = scene.getObjectByName('gulls');
@@ -1414,7 +1892,6 @@ function updateAmbient(dt){
     } else orderMarker.visible = false;
   }
 }
-
 function updateHighlight(){
   let tgt = null, ok = false;
   if (!S.held) {
@@ -1432,7 +1909,6 @@ function updateHighlight(){
   highlight.scale.set(C_W + 0.12, C_H + 0.12, tgt.len + 0.12);
   highlight.material.color.setHex(ok ? 0x22ff88 : 0xffb020);
 }
-
 function findCandidate(){
   let best = null, bd = 1e9;
   const [, , off] = footprint();
@@ -1455,7 +1931,7 @@ function findCandidate(){
 }
 
 // =====================================================================
-//  ÓRDENES DE TRABAJO
+//  ÓRDENES
 // =====================================================================
 function newOrder(){
   const cands = containers.filter(c => c.state === 'rest' && c.loc && isTop(c));
@@ -1487,7 +1963,6 @@ function setSprLen(len){
 }
 function holdWarn(){ if (time - S.lastHoldWarn > 2) { S.lastHoldWarn = time; log('Interbloqueo: spreader asentado — ice antes de trasladar carro o pórtico', true); } }
 function flash(){ S.alarmUntil = time + 2.5; const f = $('alarm-flash'); f.style.opacity = '1'; setTimeout(() => f.style.opacity = '0', 450); }
-
 function log(msg, warn = false){
   if (logs[0] && logs[0].msg === msg) return;
   const t = new Date().toLocaleTimeString('es-PE', { hour12: false });
@@ -1524,9 +1999,9 @@ function updateCamera(){
 //  INTERFAZ
 // =====================================================================
 const cache = {};
-function setT(id, v){ if (cache[id] !== v) { cache[id] = v; $(id).textContent = v; } }
-function setH(id, v){ if (cache[id] !== v) { cache[id] = v; $(id).innerHTML = v; } }
-function setCls(id, v){ if (cache['c_' + id] !== v) { cache['c_' + id] = v; $(id).className = v; } }
+function setT(id, v){ if (cache[id] !== v) { cache[id] = v; const el = $(id); if (el) el.textContent = v; } }
+function setH(id, v){ if (cache[id] !== v) { cache[id] = v; const el = $(id); if (el) el.innerHTML = v; } }
+function setCls(id, v){ if (cache['c_' + id] !== v) { cache['c_' + id] = v; const el = $(id); if (el) el.className = v; } }
 function barColor(pct){ return pct > 100 ? 'linear-gradient(90deg,#dc2626,#f87171)' : pct > 85 ? 'linear-gradient(90deg,#f59e0b,#fcd34d)' : 'linear-gradient(90deg,#06b6d4,#67e8f9)'; }
 const dragging = { trolley: false, hoist: false, gantry: false };
 
@@ -1544,44 +2019,35 @@ function updateUI(){
   setT('c-vgm', c ? kg(c.vgm) : '—');
   const dv = c ? (c.mass - c.vgm) / c.vgm * 100 : null;
   setH('c-vgmdiff', dv === null ? '—' : `<span class="${Math.abs(dv) > 5 ? 'text-red-400' : 'text-emerald-400'}">${dv >= 0 ? '+' : ''}${dv.toFixed(1)} %</span>`);
-
   const mTot = SPR_MASS + (c ? c.mass : 0);
   setT('t-mass', S.landed ? `${kg(mTot)} (apoyada)` : kg(mTot));
   setT('t-force', (S.T / 1000).toFixed(1) + ' kN');
   setT('t-sigma', S.sigma.toFixed(1) + ' MPa');
   setT('t-daf', S.landed ? '—' : S.daf.toFixed(2) + '×');
   setH('t-slack', S.landed ? '<span class="text-amber-300">FLOJO (slack)</span>' : '<span class="text-emerald-400">TENSO</span>');
-  const sp = S.sigma / SIGMA_ADM * 100; const bs = $('bar-sigma'); bs.style.width = clamp(sp, 0, 100) + '%'; bs.style.background = barColor(sp);
-
+  const sp = S.sigma / SIGMA_ADM * 100; const bs = $('bar-sigma'); if (bs) { bs.style.width = clamp(sp, 0, 100) + '%'; bs.style.background = barColor(sp); }
   setT('m-reach', S.reach.toFixed(1) + ' m' + (S.reach < 0 ? ' (lado tierra)' : ''));
   setT('m-moment', Math.round(Math.abs(S.moment)).toLocaleString('es-PE') + ' kN·m');
   setT('m-util', S.util.toFixed(0) + ' %');
-  const bu = $('bar-util'); bu.style.width = clamp(S.util, 0, 100) + '%'; bu.style.background = barColor(S.util);
-
+  const bu = $('bar-util'); if (bu) { bu.style.width = clamp(S.util, 0, 100) + '%'; bu.style.background = barColor(S.util); }
   const L = S.hoist.x, per = 2 * Math.PI * Math.sqrt(L / G), deg = S.theta * 180 / Math.PI;
   setT('p-l', L.toFixed(2) + ' m'); setT('p-t', per.toFixed(2) + ' s');
   setT('p-angle', (deg >= 0 ? '+' : '') + deg.toFixed(2) + '°');
   setT('p-disp', (L * Math.sin(S.theta) >= 0 ? '+' : '') + (L * Math.sin(S.theta)).toFixed(2) + ' m');
   setH('p-as', S.antiSway ? '<span class="text-emerald-400">ACTIVO</span>' : '<span class="text-slate-400">APAGADO</span>');
   const ba = $('bar-angle'), ap = Math.min(48, Math.abs(deg) * 8);
-  ba.style.width = ap + '%'; ba.style.left = deg >= 0 ? '50%' : (50 - ap) + '%'; ba.style.background = barColor(Math.abs(deg) > 2 ? 90 : 10);
-
+  if (ba) { ba.style.width = ap + '%'; ba.style.left = deg >= 0 ? '50%' : (50 - ap) + '%'; ba.style.background = barColor(Math.abs(deg) > 2 ? 90 : 10); }
   setT('f-cycles', String(S.cycles));
   setT('f-ds', S.cycles ? S.lastDs.toFixed(1) + ' MPa' : '—');
   setT('f-d', S.damage > 0 ? (S.damage * 100).toExponential(2) + ' %' : '0 %');
   if (S.lastDs > 0) { const n = SN_N * Math.pow(SN_REF / S.lastDs, SN_M) * (1 - S.damage); setT('f-life', n > 1e6 ? (n / 1e6).toFixed(1) + ' M ciclos' : Math.round(n).toLocaleString('es-PE') + ' ciclos'); } else setT('f-life', '—');
-
   setT('w-speed', S.windNow.toFixed(0) + ' km/h');
   setT('w-force', (Math.abs(S.windF) / 1000).toFixed(2) + ' kN');
   setH('w-state', S.windKmh > 72 ? '<span class="text-red-400">DETENER OPERACIÓN</span>' : S.windKmh > 54 ? '<span class="text-amber-300">PRECAUCIÓN</span>' : '<span class="text-emerald-400">OPERABLE</span>');
-
-  // controles
   const tgt = (ax, d) => Math.abs(ax.target - ax.x) > 0.05 && ax.key === 0 ? `${ax.x.toFixed(d)} → ${ax.target.toFixed(d)} m` : `${ax.x.toFixed(d)} m`;
   setT('lb-trolley', tgt(S.trolley, 1)); setT('lb-hoist', tgt(S.hoist, 1)); setT('lb-gantry', tgt(S.gantry, 1));
-  for (const k of ['trolley', 'hoist', 'gantry']) if (!dragging[k]) $('sl-' + k).value = S[k].target;
+  for (const k of ['trolley', 'hoist', 'gantry']) if (!dragging[k]) { const el = $('sl-' + k); if (el) el.value = S[k].target; }
   setT('lb-spr', Math.abs(S.sprLenCur - S.sprLenTarget) > 0.01 ? `${S.sprLenCur.toFixed(2)} m…` : ft(S.sprLenCur));
-
-  // botón lock
   const r = lockReadiness();
   let lcls, ltxt;
   if (S.locked) { lcls = (S.landed || S.bypass) ? 'locked' : 'blocked'; ltxt = S.landed || S.bypass ? 'UNLOCK · espacio' : 'UNLOCK bloqueado · carga suspendida'; }
@@ -1591,11 +2057,7 @@ function updateUI(){
   setCls('pad-lock', 'pad-btn wide ' + lcls); setT('pad-lock-t', S.locked ? 'UNLOCK' : 'LOCK');
   setCls('pad-auto', 'pad-btn' + (AUTO.on ? ' on' : ''));
   setT('pad-spr', ft(S.sprLenCur));
-
-  // alineación
   updateAlignHUD(r);
-
-  // orden
   if (order) {
     const free = trucks.find(t => t.state === 'wait' && !t.cargo);
     setH('wo-text', `Descargar <b class="text-white">${fmtId(order.c.id)}</b> (${ft(order.c.len)}) de ${order.c.loc} → ${free ? 'camión <b class="text-white">' + free.name + '</b>' : '<span class="text-amber-300">esperando camión</span>'}. Marcado con el cono cian.`);
@@ -1605,8 +2067,6 @@ function updateUI(){
   const el = (performance.now() - S.t0) / 1000;
   setT('st-time', `${Math.floor(el / 60)}:${String(Math.floor(el % 60)).padStart(2, '0')}`);
   setT('st-mph', el > 60 && S.moves ? (S.moves / (el / 3600)).toFixed(1) : '—');
-
-  // estado global
   const red = S.sigma > SIGMA_ADM || S.util > 100 || S.windKmh > 72 || time < S.alarmUntil;
   const amber = S.sigma > SIGMA_ADM * 0.85 || S.util > 85 || S.windKmh > 54 || (S.held && Math.abs(deg) > 2.5) || S.estop > 0;
   setCls('status-led', 'led ' + (red ? 'led-red blink' : amber ? 'led-yellow' : 'led-green'));
@@ -1659,6 +2119,434 @@ function updateAlignHUD(r){
   setT('align-mini', mini); setT('m-hud', mini);
 }
 
+// =====================================================================
+//  MONITOREO COMPLETO DEL IZAJE — lógica
+//  Lee del estado S y de constantes ya definidas. NO duplica física.
+// =====================================================================
+function monInit(){
+  MON.win = $('mon-frame');
+  document.querySelectorAll('[data-mon]').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('[data-mon]').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      MON.chartVar = b.dataset.mon;
+      const leg = $('mon-chart-legend'); if (leg) leg.textContent = MON_LABELS[MON.chartVar] || '';
+    });
+  });
+}
+
+// Inicia ciclo al hacer LOCK sobre un contenedor
+function monStartCycle(c){
+  MON.cycle = {
+    n: MON.cycles.length + 1,
+    id: c.id, len: c.len,
+    mass: c.mass, vgm: c.vgm,
+    t0: performance.now(),
+    maxT: 0, maxSigma: 0, maxH: 0, maxTheta: 0, maxV: 0, maxWind: 0, maxMoment: 0,
+    status: 'EN CURSO'
+  };
+}
+
+// Cierra ciclo al hacer UNLOCK en destino
+function monEndCycle(status){
+  if (!MON.cycle) return;
+  const c = MON.cycle;
+  c.duration = (performance.now() - c.t0) / 1000;
+  c.status = status || 'COMPLETADO';
+  MON.cycles.unshift(c);
+  if (MON.cycles.length > 20) MON.cycles.length = 20;
+  MON.cycle = null;
+  monRenderCycles();
+  monRenderSummary(c);
+  // Reflejar en el log general
+  log(`Ciclo #${String(c.n).padStart(3, '0')} · ${c.id} · T máx ${(c.maxT/1000).toFixed(1)} kN · θ máx ${(c.maxTheta*180/Math.PI).toFixed(1)}° · ${fmtDur(c.duration)} · ${c.status}`);
+}
+function fmtDur(s){ s = Math.max(0, Math.round(s)); return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0'); }
+
+function monRenderCycles(){
+  const box = $('mon-cyc-list'); if (!box) return;
+  if (!MON.cycles.length){
+    box.innerHTML = '<div class="text-[11px] text-slate-500 py-2 text-center">Sin ciclos registrados todavía. Complete un izaje (LOCK → UNLOCK en destino) para registrar el primero.</div>';
+    const c = $('mon-cyc-count'); if (c) c.textContent = '0 ciclos';
+    return;
+  }
+  const cnt = $('mon-cyc-count'); if (cnt) cnt.textContent = MON.cycles.length + ' ciclo' + (MON.cycles.length===1?'':'s');
+  box.innerHTML = MON.cycles.map(c => `
+    <div class="mon-cyc">
+      <div class="mon-cyc-head">
+        <span>CICLO #${String(c.n).padStart(3,'0')} · ${c.id}</span>
+        <span class="pill pill-green">${c.status}</span>
+      </div>
+      <div class="mon-cyc-body">
+        <div><span>Peso:</span> <b>${kg(c.mass)}</b></div>
+        <div><span>VGM:</span> <b>${kg(c.vgm)}</b></div>
+        <div><span>Tensión máx:</span> <b>${(c.maxT/1000).toFixed(1)} kN</b></div>
+        <div><span>σ máx:</span> <b>${c.maxSigma.toFixed(1)} MPa</b></div>
+        <div><span>Altura máx:</span> <b>${c.maxH.toFixed(1)} m</b></div>
+        <div><span>θ máx:</span> <b>${(c.maxTheta*180/Math.PI).toFixed(2)}°</b></div>
+        <div><span>Vel. máx:</span> <b>${c.maxV.toFixed(2)} m/s</b></div>
+        <div><span>Viento máx:</span> <b>${c.maxWind.toFixed(0)} km/h</b></div>
+        <div><span>Momento máx:</span> <b>${Math.round(c.maxMoment)} kN·m</b></div>
+        <div><span>Duración:</span> <b>${fmtDur(c.duration)}</b></div>
+      </div>
+    </div>
+  `).join('');
+}
+function monRenderSummary(c){
+  const box = $('mon-summary'); if (!box) return;
+  box.style.display = 'block';
+  box.innerHTML = `
+    <h4>━━━━━ RESUMEN DEL IZAJE ━━━━━</h4>
+    <div><span>Contenedor:</span><b>${c.id}</b></div>
+    <div><span>Peso:</span><b>${kg(c.mass)}</b></div>
+    <div><span>Carga total:</span><b>${kg(c.mass + SPR_MASS)}</b></div>
+    <div><span>Tensión máxima:</span><b>${(c.maxT/1000).toFixed(1)} kN</b></div>
+    <div><span>Esfuerzo máximo:</span><b>${c.maxSigma.toFixed(1)} MPa</b></div>
+    <div><span>Momento máximo:</span><b>${Math.round(c.maxMoment)} kN·m</b></div>
+    <div><span>Ángulo máximo:</span><b>${(c.maxTheta*180/Math.PI).toFixed(2)}°</b></div>
+    <div><span>Altura máxima:</span><b>${c.maxH.toFixed(1)} m</b></div>
+    <div><span>Viento máximo:</span><b>${c.maxWind.toFixed(0)} km/h</b></div>
+    <div><span>Duración:</span><b>${fmtDur(c.duration)}</b></div>
+    <hr>
+    <div style="text-align:center;color:#86efac;font-weight:700">✓ ${c.status}</div>
+    <div style="text-align:center;margin-top:8px">
+      <button type="button" onclick="this.closest('.mon-summary').style.display='none'"
+        style="font-size:10px;padding:4px 12px;border-radius:6px;border:1px solid rgba(148,163,184,.3);background:transparent;color:#94a3b8;cursor:pointer">Cerrar resumen</button>
+    </div>
+  `;
+  clearTimeout(monRenderSummary._t);
+  monRenderSummary._t = setTimeout(() => { if (box.style.display !== 'none') box.style.display = 'none'; }, 20000);
+}
+
+function monUpdate(dt){
+  if (!MON.win) return;
+  if (MON.win.classList.contains('min')) return;
+  if (document.body.classList.contains('hide-mon')) return;
+
+  const c = S.held;
+  const mTot = SPR_MASS + (c ? c.mass : 0);
+  const [, , off] = footprint();
+  const hSpreader = S.sp.y;
+  const dGround = hSpreader - off;
+  const [hx, hz] = footprint();
+  const sup = supportAt(S.sp.x, S.sp.z, hx, hz, c);
+
+  // ---------- Contenedor ----------
+  setT('mon-cid', c ? fmtId(c.id) : '—');
+  setT('mon-clen', c ? `${ft(c.len)} · ${c.brand}` : ft(S.sprLenCur));
+  setT('mon-cmass', c ? kg(c.mass) : '—');
+  setT('mon-sprmass', kg(SPR_MASS));
+  setT('mon-total', kg(mTot));
+  setT('mon-vgm', c ? kg(c.vgm) : '—');
+  const dv = c ? c.mass - c.vgm : 0;
+  setH('mon-vgmdiff', c ? `<span class="${Math.abs(dv)/c.vgm > 0.05 ? 'text-red-400' : 'text-emerald-400'}">${dv>=0?'+':''}${Math.round(dv)} kg</span>` : '—');
+  setT('mon-swl', (mTot / SWL * 100).toFixed(1) + ' %');
+  setT('mon-lock', S.locked ? 'LOCKED' : S.locking ? 'GIRANDO' : 'UNLOCKED');
+
+  // ---------- Tensión ----------
+  const TkN = S.T / 1000;
+  setT('mon-ten-kn', TkN.toFixed(1) + ' kN');
+  setT('mon-ten-n', Math.round(S.T).toLocaleString('es-PE') + ' N');
+  setT('mon-ten-per', (S.T / 4 / 1000).toFixed(1) + ' kN');
+  setT('mon-sigma', S.sigma.toFixed(2) + ' MPa');
+  setT('mon-daf', S.daf.toFixed(3));
+  setT('mon-area', (ROPE_AREA * 1e4).toFixed(1) + ' cm²');
+  setT('mon-adm', SIGMA_ADM + ' MPa');
+  const sigPct = S.sigma / SIGMA_ADM * 100;
+  const bs = $('mon-bar-sigma');
+  if (bs) { bs.style.width = clamp(sigPct, 0, 100) + '%'; bs.style.background = barColor(sigPct); }
+  const st = $('mon-sigma-state');
+  if (st) {
+    st.className = 'pill ' + (sigPct > 100 ? 'pill-red' : sigPct > 85 ? 'pill-amber' : 'pill-green');
+    st.textContent = sigPct > 100 ? 'SOBRECARGA' : sigPct > 85 ? 'PRECAUCIÓN' : 'NORMAL';
+  }
+  // causas de incremento de tensión
+  const accel = Math.abs(S.trolley.a) > 0.15;
+  const braking = accel && Math.sign(S.trolley.a) !== Math.sign(S.trolley.v) && Math.abs(S.trolley.v) > 0.2;
+  const sway = Math.abs(S.theta) > 0.02;
+  const wind = Math.abs(S.windF) > 500;
+  const snatch = S.snatch > 0.05;
+  const estop = S.estop > 0;
+  const causesEl = $('mon-tension-causes');
+  if (causesEl) causesEl.innerHTML = [
+    ['aceleración', accel && !braking],
+    ['frenado', braking],
+    ['lateral', Math.abs(S.trolley.a) > 0.2 && sway],
+    ['pendulación', sway],
+    ['viento', wind],
+    ['izaje brusco', snatch || estop]
+  ].map(([k, on]) => `<span class="${on?'on':''}">${k}</span>`).join('');
+
+  // ---------- Fuerzas ----------
+  const Fw = c ? c.mass * G : 0;
+  const Fg = mTot * G;
+  const Fd = S.landed ? 0 : mTot * Math.abs(S.hoist.a);
+  const Fwind = Math.abs(S.windF);
+  const Fres = Math.sqrt(S.T*S.T + Fwind*Fwind);
+  setT('mon-fw', c ? kg(c.mass) : '—');
+  setT('mon-fwn', Math.round(Fw).toLocaleString('es-PE') + ' N');
+  setT('mon-fg', (Fg/1000).toFixed(1) + ' kN');
+  setT('mon-ft', TkN.toFixed(1) + ' kN');
+  setT('mon-fd', (Fd/1000).toFixed(1) + ' kN');
+  setT('mon-fwind', (Fwind/1000).toFixed(2) + ' kN');
+  setT('mon-fres', (Fres/1000).toFixed(1) + ' kN');
+  setT('mon-av', (-S.hoist.a).toFixed(3) + ' m/s²');
+  setT('mon-ah', S.trolley.a.toFixed(3) + ' m/s²');
+
+  // ---------- Altura ----------
+  setT('mon-h', hSpreader.toFixed(2) + ' m');
+  setT('mon-cable', S.hoist.x.toFixed(2) + ' m');
+  setT('mon-dground', dGround.toFixed(2) + ' m');
+  setT('mon-dsup', (hSpreader - off - sup.y).toFixed(2) + ' m');
+  setT('mon-vv', (-S.hoist.v).toFixed(3) + ' m/s');
+  const hp = clamp((hSpreader - 0) / ROPE_Y * 100, 0, 100);
+  const hmark = $('mon-hmarker'), hlbl = $('mon-hlabel');
+  if (hmark) hmark.style.bottom = hp + '%';
+  if (hlbl) hlbl.textContent = hSpreader.toFixed(1) + ' m';
+
+  // ---------- Movimiento ----------
+  const dirH = v => v > 0.05 ? '→ muelle' : v < -0.05 ? '← buque' : '·';
+  const dirV = v => v > 0.05 ? '↓ baja' : v < -0.05 ? '↑ sube' : '·';
+  setT('mon-tpos', S.trolley.x.toFixed(2) + ' m');
+  setT('mon-tvel', S.trolley.v.toFixed(3) + ' m/s');
+  setT('mon-tacc', S.trolley.a.toFixed(3) + ' m/s²');
+  setT('mon-tdir', dirH(S.trolley.v));
+  setT('mon-hpos', S.hoist.x.toFixed(2) + ' m');
+  setT('mon-hvel', (-S.hoist.v).toFixed(3) + ' m/s');
+  setT('mon-hacc', (-S.hoist.a).toFixed(3) + ' m/s²');
+  setT('mon-hdir', dirV(S.hoist.v));
+  setT('mon-gpos', S.gantry.x.toFixed(2) + ' m');
+  setT('mon-gvel', S.gantry.v.toFixed(3) + ' m/s');
+  setT('mon-gacc', S.gantry.a.toFixed(3) + ' m/s²');
+  setT('mon-gdir', dirH(S.gantry.v));
+  setT('mon-slen', S.sprLenCur.toFixed(2) + ' m (' + ft(S.sprLenCur) + ')');
+  setT('mon-sorient', 'θ ' + (S.theta*180/Math.PI).toFixed(2) + '°');
+  setH('mon-slock', S.locked ? '<span class="text-emerald-400">LOCKED</span>' : S.locking ? '<span class="text-amber-300">GIRANDO</span>' : '<span class="text-slate-400">UNLOCKED</span>');
+
+  // ---------- Pendulación ----------
+  setT('mon-theta', (S.theta*180/Math.PI).toFixed(2) + '°');
+  setT('mon-omega', S.omega.toFixed(3) + ' rad/s');
+  setT('mon-sway', (S.hoist.x * Math.sin(S.theta)).toFixed(2) + ' m');
+  setT('mon-pl', S.hoist.x.toFixed(2) + ' m');
+  setT('mon-per', (2*Math.PI*Math.sqrt(S.hoist.x/G)).toFixed(2) + ' s');
+  setH('mon-as', S.antiSway ? '<span class="text-emerald-400">ACTIVO</span>' : '<span class="text-slate-400">APAGADO</span>');
+  drawMonPendulum();
+
+  // ---------- Momento ----------
+  setT('mon-mom-big', Math.round(Math.abs(S.moment)).toLocaleString('es-PE') + ' kN·m');
+  setT('mon-mreach', S.reach.toFixed(2) + ' m');
+  setT('mon-mw', c ? kg(c.mass) : '—');
+  setT('mon-mswl', (SWL/1000) + ' t');
+  setT('mon-mutil', S.util.toFixed(1) + ' %');
+  const bm = $('mon-bar-moment');
+  if (bm) { bm.style.width = clamp(S.util, 0, 100) + '%'; bm.style.background = barColor(S.util); }
+  const ms = $('mon-mom-state');
+  if (ms) {
+    ms.className = 'pill ' + (S.util > 100 ? 'pill-red' : S.util > 85 ? 'pill-amber' : 'pill-green');
+    ms.textContent = S.util > 100 ? 'SOBRECARGA' : S.util > 85 ? 'PRECAUCIÓN' : 'NORMAL';
+  }
+
+  // ---------- Viento ----------
+  setT('mon-wind-big', S.windNow.toFixed(0) + ' km/h');
+  setT('mon-wdir', '← desde mar');
+  setT('mon-wgust', (S.windNow - S.windKmh).toFixed(1) + ' km/h');
+  setT('mon-wforce', (Math.abs(S.windF)/1000).toFixed(2) + ' kN');
+  const wSt = $('mon-wstate');
+  if (wSt) {
+    const txt = S.windKmh > 72 ? '🔴 PARADA' : S.windKmh > 54 ? '🟡 PRECAUCIÓN' : '🟢 NORMAL';
+    wSt.textContent = txt;
+    wSt.className = S.windKmh > 72 ? 'text-red-400' : S.windKmh > 54 ? 'text-amber-300' : 'text-emerald-400';
+  }
+
+  // ---------- Estado de la ventana ----------
+  const stEl = $('mon-status');
+  if (stEl) {
+    const hasCycle = !!MON.cycle;
+    const alarm = S.sigma > SIGMA_ADM || S.util > 100 || S.windKmh > 72;
+    stEl.className = 'pill ' + (alarm ? 'pill-red' : hasCycle ? 'pill-green' : 'pill-amber');
+    stEl.textContent = alarm ? 'ALARMA' : hasCycle ? 'IZANDO' : 'STANDBY';
+  }
+
+  // ---------- Máximos del ciclo en curso ----------
+  if (MON.cycle) {
+    const T = S.T, sg = S.sigma, hh = hSpreader, th = Math.abs(S.theta), vv = Math.abs(S.hoist.v), ww = S.windKmh, mm = Math.abs(S.moment);
+    if (T > MON.cycle.maxT) MON.cycle.maxT = T;
+    if (sg > MON.cycle.maxSigma) MON.cycle.maxSigma = sg;
+    if (hh > MON.cycle.maxH) MON.cycle.maxH = hh;
+    if (th > MON.cycle.maxTheta) MON.cycle.maxTheta = th;
+    if (vv > MON.cycle.maxV) MON.cycle.maxV = vv;
+    if (ww > MON.cycle.maxWind) MON.cycle.maxWind = ww;
+    if (mm > MON.cycle.maxMoment) MON.cycle.maxMoment = mm;
+  }
+
+  // ---------- Muestreo para el gráfico ----------
+  MON.sampleAcc += dt;
+  if (MON.sampleAcc > 0.12) {
+    MON.sampleAcc = 0;
+    MON.history.push({
+      tension: TkN,
+      weight: mTot / 1000,
+      height: hSpreader,
+      theta: S.theta * 180 / Math.PI,
+      velocity: -S.hoist.v,
+      moment: Math.abs(S.moment) / 1000
+    });
+    if (MON.history.length > MON.maxPoints) MON.history.shift();
+  }
+  MON.chartAcc += dt;
+  if (MON.chartAcc > 0.2) { MON.chartAcc = 0; drawMonChart(); }
+  monCheckAlarms();
+}
+
+function drawMonChart(){
+  const cvs = $('mon-chart'); if (!cvs) return;
+  const ctx = cvs.getContext('2d');
+  const W = cvs.width, H = cvs.height;
+  ctx.clearRect(0, 0, W, H);
+  const pts = MON.history;
+  // grid fijo
+  ctx.strokeStyle = 'rgba(148,163,184,0.12)';
+  ctx.lineWidth = 1;
+  const padLeft = 46, padTop = 10, padRight = 10, padBottom = 22;
+  const plotW = W - padLeft - padRight, plotH = H - padTop - padBottom;
+  for (let i = 0; i <= 4; i++) {
+    const y = padTop + plotH * i / 4;
+    ctx.beginPath(); ctx.moveTo(padLeft, y); ctx.lineTo(W - padRight, y); ctx.stroke();
+  }
+  if (pts.length < 2) {
+    ctx.fillStyle = 'rgba(148,163,184,0.6)';
+    ctx.font = '11px monospace';
+    ctx.fillText('Esperando datos del izaje…', padLeft + 10, padTop + plotH / 2);
+    return;
+  }
+  const key = MON.chartVar;
+  let min = Infinity, max = -Infinity;
+  for (const p of pts) { const v = p[key]; if (v < min) min = v; if (v > max) max = v; }
+  if (!isFinite(min) || !isFinite(max)) return;
+  if (max - min < 1e-3) { const c0 = (max + min) / 2; min = c0 - 1; max = c0 + 1; }
+  const pad = (max - min) * 0.1; max += pad; min -= pad;
+  // eje Y con etiquetas
+  ctx.fillStyle = 'rgba(148,163,184,0.65)';
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 4; i++) {
+    const y = padTop + plotH * i / 4;
+    const v = max - (max - min) * i / 4;
+    ctx.fillText(v.toFixed(1), padLeft - 4, y + 3);
+  }
+  // línea
+  ctx.strokeStyle = '#22d3ee';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  const n = pts.length;
+  for (let i = 0; i < n; i++) {
+    const x = padLeft + plotW * i / (n - 1);
+    const y = padTop + plotH * (1 - (pts[i][key] - min) / (max - min));
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  // relleno
+  ctx.lineTo(padLeft + plotW, padTop + plotH);
+  ctx.lineTo(padLeft, padTop + plotH);
+  ctx.closePath();
+  const grad = ctx.createLinearGradient(0, padTop, 0, padTop + plotH);
+  grad.addColorStop(0, 'rgba(34,211,238,0.28)');
+  grad.addColorStop(1, 'rgba(34,211,238,0.02)');
+  ctx.fillStyle = grad;
+  ctx.fill();
+  // punto final
+  const lastX = padLeft + plotW, lastY = padTop + plotH * (1 - (pts[n-1][key] - min) / (max - min));
+  ctx.fillStyle = '#67e8f9';
+  ctx.beginPath(); ctx.arc(lastX, lastY, 3, 0, Math.PI * 2); ctx.fill();
+  // etiqueta del último valor
+  ctx.fillStyle = '#67e8f9';
+  ctx.font = 'bold 11px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText(pts[n-1][key].toFixed(1), padLeft + 4, padTop + 12);
+}
+
+function drawMonPendulum(){
+  const cvs = $('mon-pend-canvas'); if (!cvs) return;
+  const ctx = cvs.getContext('2d');
+  const W = cvs.width, H = cvs.height;
+  ctx.clearRect(0, 0, W, H);
+  const cx = W / 2, cy = 24;
+  const theta = clamp(S.theta, -0.6, 0.6);
+  const L = H - 60;
+  const x2 = cx + Math.sin(theta) * L;
+  const y2 = cy + Math.cos(theta) * L;
+  // eje vertical de referencia
+  ctx.strokeStyle = 'rgba(148,163,184,0.35)';
+  ctx.setLineDash([4, 4]);
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx, cy + L + 14); ctx.stroke();
+  ctx.setLineDash([]);
+  // arco de referencia
+  ctx.strokeStyle = 'rgba(167,139,250,0.5)';
+  ctx.beginPath(); ctx.arc(cx, cy, L * 0.75, Math.PI/2 - 0.6, Math.PI/2 + 0.6); ctx.stroke();
+  // marcas ±10°
+  ctx.strokeStyle = 'rgba(167,139,250,0.35)';
+  for (const a of [-0.1745, 0.1745]) {
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.sin(a) * (L * 0.7), cy + Math.cos(a) * (L * 0.7));
+    ctx.lineTo(cx + Math.sin(a) * (L * 0.8), cy + Math.cos(a) * (L * 0.8));
+    ctx.stroke();
+  }
+  // cable
+  ctx.strokeStyle = '#fbbf24';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x2, y2); ctx.stroke();
+  // carga
+  const loadW = 26, loadH = 14;
+  ctx.fillStyle = S.held ? '#22d3ee' : '#64748b';
+  ctx.fillRect(x2 - loadW/2, y2, loadW, loadH);
+  ctx.strokeStyle = '#0f172a';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x2 - loadW/2, y2, loadW, loadH);
+  // pivote
+  ctx.fillStyle = '#e879f9';
+  ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2); ctx.fill();
+  // texto
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 12px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText((theta * 180 / Math.PI).toFixed(2) + '°', cx, H - 6);
+  ctx.fillStyle = 'rgba(148,163,184,0.7)';
+  ctx.font = '9px monospace';
+  ctx.fillText('−10°', cx - L * 0.75, cy + L * 0.62);
+  ctx.fillText('+10°', cx + L * 0.75, cy + L * 0.62);
+}
+
+function monCheckAlarms(){
+  const alarms = [];
+  if (S.sigma > SIGMA_ADM) alarms.push({ level: 'danger', text: `SOBRECARGA · σ = ${S.sigma.toFixed(1)} MPa (admis. ${SIGMA_ADM})` });
+  else if (S.sigma > SIGMA_ADM * 0.85) alarms.push({ level: 'warn', text: `TENSIÓN ALTA · σ = ${S.sigma.toFixed(1)} MPa` });
+  if (S.util > 100) alarms.push({ level: 'danger', text: `MOMENTO ALTO · utilización ${S.util.toFixed(0)} %` });
+  else if (S.util > 85) alarms.push({ level: 'warn', text: `MOMENTO ALTO · utilización ${S.util.toFixed(0)} %` });
+  if (S.windKmh > 72) alarms.push({ level: 'danger', text: `VIENTO ALTO · ${S.windKmh.toFixed(0)} km/h (parar)` });
+  else if (S.windKmh > 54) alarms.push({ level: 'warn', text: `VIENTO ALTO · ${S.windKmh.toFixed(0)} km/h (precaución)` });
+  const deg = S.theta * 180 / Math.PI;
+  if (Math.abs(deg) > 5.7) alarms.push({ level: 'danger', text: `PENDULACIÓN EXCESIVA · ${deg.toFixed(1)}°` });
+  else if (Math.abs(deg) > 2.9) alarms.push({ level: 'warn', text: `PENDULACIÓN · ${deg.toFixed(1)}°` });
+  if (Math.abs(S.hoist.v) > 2.5) alarms.push({ level: 'warn', text: `VELOCIDAD EXCESIVA · izaje ${Math.abs(S.hoist.v).toFixed(2)} m/s` });
+  if (S.snatch > 0.3) alarms.push({ level: 'warn', text: `IZAJE BRUSCO · factor +${(S.snatch * 100).toFixed(0)} %` });
+  if (S.estop > 0) alarms.push({ level: 'danger', text: 'PARADA DE EMERGENCIA ACTIVA' });
+  // render
+  const box = $('mon-alarms'); if (!box) return;
+  // solo actualizar si cambió el contenido (evita reflow constante)
+  const sig = alarms.map(a => a.level + '|' + a.text).join('§');
+  if (sig === MON.lastAlarms.join('§')) return;
+  MON.lastAlarms = alarms.map(a => a.level + '|' + a.text);
+  if (!alarms.length) {
+    box.innerHTML = '<div class="text-[11px] text-slate-500 py-2 text-center">Sin alarmas activas</div>';
+    return;
+  }
+  box.innerHTML = alarms.map(a => `<div class="mon-alarm ${a.level}"><i class="fa-solid fa-triangle-exclamation"></i>${a.text}</div>`).join('');
+}
+
+// =====================================================================
+//  VENTANAS FLOTANTES Y PANELES
+// =====================================================================
 function bindUI(){
   document.querySelectorAll('.cam-btn').forEach(b => b.addEventListener('click', () => setCam(b.dataset.cam)));
   for (const k of ['trolley', 'hoist', 'gantry']) {
@@ -1690,6 +2578,13 @@ function bindUI(){
 
   bindTouchUI();
   bindWindows();
+  monInit();
+
+  // Botón morado del encabezado: abre/cierra el panel de monitoreo
+  $('btn-monitor').addEventListener('click', () => {
+    const visible = !document.body.classList.contains('hide-mon');
+    setPanel('mon', !visible);
+  });
 
   const KEYS = { KeyA: ['trolley', -1], ArrowLeft: ['trolley', -1], KeyD: ['trolley', 1], ArrowRight: ['trolley', 1], KeyW: ['hoist', -1], ArrowUp: ['hoist', -1], KeyS: ['hoist', 1], ArrowDown: ['hoist', 1], KeyQ: ['gantry', -1], KeyE: ['gantry', 1] };
   window.addEventListener('keydown', e => {
@@ -1717,12 +2612,9 @@ function bindUI(){
   window.addEventListener('resize', scheduleResize);
   window.addEventListener('orientationchange', () => { scheduleResize(); setTimeout(onResize, 450); });
   if (window.visualViewport) window.visualViewport.addEventListener('resize', scheduleResize);
-  setInterval(() => { $('clock').textContent = new Date().toLocaleTimeString('es-PE', { hour12: false }); }, 1000);
+  setInterval(() => { const c = $('clock'); if (c) c.textContent = new Date().toLocaleTimeString('es-PE', { hour12: false }); }, 1000);
 }
 
-// =====================================================================
-//  MANDO TACTIL Y PESTANAS (celular / tablet)
-// =====================================================================
 function axisPress(name, dir){
   if (S.estop > 0) return;
   if (AUTO.on) setAuto(false, 'el operador tomó el control');
@@ -1733,17 +2625,15 @@ function axisRelease(name, dir){
   const ax = S[name];
   if (ax.key === dir) { ax.key = 0; ax.target = stoppingTarget(ax); }
 }
-
 function setTab(tab){
   for (const t of ['vista', 'tele', 'ctl']) document.body.classList.toggle('m-tab-' + t, t === tab);
   document.querySelectorAll('.mtab').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
   scheduleResize();
 }
 
-// --- Ventanas flotantes (alineacion y CCTV): arrastrar, minimizar, ocultar ---
 const WIN_KEY = 'sts.ui.v1';
 function loadUI(){ try { return JSON.parse(localStorage.getItem(WIN_KEY)) || {}; } catch (e) { return {}; } }
-function saveUI(patch){ try { localStorage.setItem(WIN_KEY, JSON.stringify(Object.assign(loadUI(), patch))); } catch (e) { /* sin almacenamiento */ } }
+function saveUI(patch){ try { localStorage.setItem(WIN_KEY, JSON.stringify(Object.assign(loadUI(), patch))); } catch (e) { } }
 
 function placeWin(el, x, y){
   const r = el.getBoundingClientRect();
@@ -1760,6 +2650,10 @@ function defaultWinPos(el){
     const rightEdge = document.body.classList.contains('hide-ctl') || window.innerWidth < 900
       ? window.innerWidth - 12 : window.innerWidth * 0.75 - 6;
     return [rightEdge - r.width, top];
+  }
+  if (el.id === 'mon-frame') {
+    // Centrado horizontalmente bajo el header, sin tapar los paneles laterales
+    return [(window.innerWidth - r.width) / 2, top];
   }
   const pip = $('pip-frame');
   const below = window.innerWidth < 900 && !document.body.classList.contains('hide-pip')
@@ -1778,7 +2672,7 @@ function makeDraggable(el){
     if (e.target.closest('.win-btn')) return;
     const r = el.getBoundingClientRect(); ox = r.left; oy = r.top; sx = e.clientX; sy = e.clientY; on = true;
     el.classList.add('dragging');
-    try { bar.setPointerCapture(e.pointerId); } catch (err) { /* sin captura */ }
+    try { bar.setPointerCapture(e.pointerId); } catch (err) { }
     e.preventDefault();
   });
   bar.addEventListener('pointermove', e => { if (on) placeWin(el, ox + e.clientX - sx, oy + e.clientY - sy); });
@@ -1793,24 +2687,35 @@ function makeDraggable(el){
 function setPanel(name, visible){
   document.body.classList.toggle('hide-' + name, !visible);
   const b = document.querySelector(`.ui-tg[data-tg="${name}"]`); if (b) b.classList.toggle('on', visible);
+  // Reflejar también en el botón morado del encabezado
+  if (name === 'mon') {
+    const mbtn = $('btn-monitor');
+    if (mbtn) mbtn.classList.toggle('on', visible);
+  }
   saveUI({ ['hide-' + name]: !visible });
-  // una ventana oculta no tiene medidas: al mostrarla se recoloca dentro de la pantalla
-  if (visible) { const w = name === 'hud' ? $('align-hud') : name === 'pip' ? $('pip-frame') : null; if (w) restoreWin(w); }
+  if (visible) {
+    const w = name === 'hud' ? $('align-hud') : name === 'pip' ? $('pip-frame') : name === 'mon' ? $('mon-frame') : null;
+    if (w) restoreWin(w);
+  }
   scheduleResize();
 }
 
 function bindWindows(){
   const st = loadUI();
-  for (const name of ['tele', 'ctl', 'hud', 'pip', 'log']) {
-    const auto = (name === 'pip' || name === 'hud') && window.innerWidth < 900;
+  for (const name of ['tele', 'ctl', 'hud', 'pip', 'log', 'mon']) {
+    const auto = (name === 'pip' || name === 'hud' || name === 'mon') && window.innerWidth < 900;
     const hidden = st['hide-' + name] === undefined ? auto : !!st['hide-' + name];
     document.body.classList.toggle('hide-' + name, hidden);
     const b = document.querySelector(`.ui-tg[data-tg="${name}"]`); if (b) b.classList.toggle('on', !hidden);
+    if (name === 'mon') {
+      const mbtn = $('btn-monitor');
+      if (mbtn) mbtn.classList.toggle('on', !hidden);
+    }
   }
   document.querySelectorAll('.ui-tg').forEach(b =>
     b.addEventListener('click', () => setPanel(b.dataset.tg, !b.classList.contains('on'))));
 
-  for (const id of ['align-hud', 'pip-frame']) {
+  for (const id of ['align-hud', 'pip-frame', 'mon-frame']) {
     const el = $(id);
     if (st[id + '.min'] !== undefined) el.classList.toggle('min', !!st[id + '.min']);
     makeDraggable(el);
@@ -1824,7 +2729,11 @@ function bindWindows(){
   document.querySelectorAll('.win-btn[data-close]').forEach(b =>
     b.addEventListener('click', () => setPanel(b.dataset.close, false)));
 
-  window.addEventListener('resize', () => { for (const id of ['align-hud', 'pip-frame']) { const el = $(id); const r = el.getBoundingClientRect(); placeWin(el, r.left, r.top); } });
+  window.addEventListener('resize', () => {
+    for (const id of ['align-hud', 'pip-frame', 'mon-frame']) {
+      const el = $(id); const r = el.getBoundingClientRect(); placeWin(el, r.left, r.top);
+    }
+  });
 }
 
 function bindTouchUI(){
@@ -1832,7 +2741,7 @@ function bindTouchUI(){
     const name = b.dataset.axis, dir = +b.dataset.dir;
     const press = e => {
       e.preventDefault();
-      if (b.setPointerCapture && e.pointerId !== undefined) { try { b.setPointerCapture(e.pointerId); } catch (err) { /* sin captura */ } }
+      if (b.setPointerCapture && e.pointerId !== undefined) { try { b.setPointerCapture(e.pointerId); } catch (err) { } }
       b.classList.add('on'); axisPress(name, dir);
     };
     const release = () => { b.classList.remove('on'); axisRelease(name, dir); };
@@ -1847,7 +2756,6 @@ function bindTouchUI(){
   $('pad-spr').addEventListener('click', () => { if (!AUTO.on) setSprLen(S.sprLenTarget > 10 ? L20 : L40); });
   $('pad-estop').addEventListener('click', triggerEstop);
   document.querySelectorAll('.mtab').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
-  // Sin rebote ni zoom por doble toque sobre los paneles
   document.addEventListener('gesturestart', e => e.preventDefault());
 }
 
@@ -1878,7 +2786,10 @@ function loop(now){
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   for (let i = 0; i < SIM_SPEED; i++) step(dt);
-  uiAcc += dt; if (uiAcc > 0.1) { uiAcc = 0; updateUI(); }
+  uiAcc += dt;
+  if (uiAcc > 0.1) { uiAcc = 0; updateUI(); }
+  // El monitoreo se actualiza a velocidad propia (no depende del throttle de UI)
+  monUpdate(dt);
   if (controls.enabled) controls.update(); else updateCamera();
   renderer.shadowMap.needsUpdate = true;
   renderer.render(scene, camera);
@@ -1898,13 +2809,12 @@ function init(){
   controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true; controls.dampingFactor = 0.06; controls.maxPolarAngle = Math.PI / 2 - 0.02;
   controls.minDistance = 8; controls.maxDistance = 280;
-  // Tactil: un dedo orbita, dos dedos acercan y desplazan
   if (THREE.TOUCH) controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
   controls.rotateSpeed = IS_TOUCH ? 0.6 : 1;
   pipCam = new THREE.PerspectiveCamera(55, 1.6, 0.1, 200); pipCam.up.set(1, 0, 0);
 
   const sky = createSky();
-  try { const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromEquirectangular(sky).texture; pm.dispose(); } catch (e) { /* sin entorno PBR */ }
+  try { const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromEquirectangular(sky).texture; pm.dispose(); } catch (e) { }
   setupLighting(); createOcean(); createDock(); createShip();
   containerMaterials(); fillShip();
   createCrane(); createSpreader(); createRopes(); createYard(); createSeagulls();
@@ -1916,7 +2826,7 @@ function init(){
 
   S.sp.set(S.trolley.x, ROPE_Y - S.hoist.x, S.gantry.x); S.prevSp.copy(S.sp);
   bindUI(); newOrder(); setCam('global');
-  log('Sistema listo · la grúa arranca en piloto automático; presione cualquier mando (o P) para operar a mano');
+  log('Sistema listo · panel de MONITOREO DE IZAJE disponible en el botón morado del encabezado');
   setTimeout(() => setAuto(true), 1200);
   requestAnimationFrame(loop);
 }
