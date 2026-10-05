@@ -22,6 +22,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --bg:#020617; --txt:#e2e8f0; --cyan:#22d3ee;
@@ -537,6 +538,26 @@
     #mon-pend-canvas{ max-width: 220px; }
     .mon-cyc-body{ font-size: 10px; }
   }
+
+  /* ---------- Tabla tipo Excel de contenedores ---------- */
+  .mon-xl-wrap{ overflow:auto; border:1px solid rgba(148,163,184,.25); border-radius:8px; max-height:340px; background:#0b1220; }
+  .mon-xl{ border-collapse:collapse; width:100%; min-width:1100px; font-family:'JetBrains Mono',monospace; font-size:10.5px; color:#e2e8f0; }
+  .mon-xl th, .mon-xl td{ border:1px solid rgba(148,163,184,.22); padding:4px 8px; text-align:center; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .mon-xl thead th{ position:sticky; top:0; z-index:2; background:#13233a; color:#67e8f9; font-weight:700; line-height:1.25; }
+  .mon-xl thead th small{ display:block; color:#94a3b8; font-weight:500; font-size:9.5px; }
+  .mon-xl tbody td:first-child, .mon-xl thead th:first-child{ position:sticky; left:0; z-index:1; background:#13233a; color:#94a3b8; font-weight:700; }
+  .mon-xl thead th:first-child{ z-index:3; }
+  .mon-xl tbody tr:nth-child(even) td:not(:first-child){ background:rgba(148,163,184,.05); }
+  .mon-xl tbody tr:hover td:not(:first-child){ background:rgba(34,211,238,.10); }
+  .mon-xl td.id{ color:#67e8f9; font-weight:700; }
+  .mon-xl td.ok{ color:#86efac; font-weight:700; }
+  .mon-xl td.bad{ color:#fca5a5; font-weight:700; }
+  .mon-dl-row{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; align-items:center; }
+  .mon-dl{ font-size:11px; font-weight:700; padding:6px 12px; border-radius:6px; cursor:pointer; border:1px solid rgba(34,197,94,.5); background:rgba(34,197,94,.12); color:#86efac; }
+  .mon-dl:hover{ background:rgba(34,197,94,.25); }
+  .mon-dl.alt{ border-color:rgba(148,163,184,.4); background:transparent; color:#cbd5e1; }
+  .mon-dl:disabled{ opacity:.4; cursor:not-allowed; }
+  .mon-dl-note{ font-size:10px; color:#64748b; }
 </style>
 </head>
 <body class="m-tab-vista">
@@ -909,6 +930,19 @@
 
         <div class="mon-chart-card">
           <div class="card-h">
+            <h3 class="font-header text-emerald-300"><i class="fa-solid fa-table"></i>Registro de contenedores (primeros 10)</h3>
+            <span id="mon-xl-count" class="pill pill-green">0 / 10</span>
+          </div>
+          <div class="mon-xl-wrap"><table class="mon-xl" id="mon-xl"></table></div>
+          <div class="mon-dl-row">
+            <button type="button" class="mon-dl" id="mon-dl-xlsx"><i class="fa-solid fa-file-excel"></i> Descargar Excel (.xlsx)</button>
+            <button type="button" class="mon-dl alt" id="mon-dl-csv"><i class="fa-solid fa-file-csv"></i> Descargar CSV</button>
+            <span class="mon-dl-note">Se registra cada izaje (LOCK → UNLOCK) hasta completar 10.</span>
+          </div>
+        </div>
+
+        <div class="mon-chart-card">
+          <div class="card-h">
             <h3 class="font-header text-red-300"><i class="fa-solid fa-triangle-exclamation"></i>Alarmas activas</h3>
           </div>
           <div id="mon-alarms" class="mon-alarms">
@@ -1057,6 +1091,8 @@ const MON = {
   maxPoints: 200,
   cycle: null,           // ciclo en curso (null si inactivo)
   cycles: [],            // historial (máx 20)
+  first10: [],           // primeros 10 contenedores izados (para la tabla/Excel)
+  total: 0,              // ciclos totales completados
   lastAlarms: [],
   chartAcc: 0,
   uiAcc: 0,
@@ -2125,6 +2161,10 @@ function updateAlignHUD(r){
 // =====================================================================
 function monInit(){
   MON.win = $('mon-frame');
+  monRenderTable();
+  const bx = $('mon-dl-xlsx'), bc = $('mon-dl-csv');
+  if (bx) bx.addEventListener('click', monDownloadXlsx);
+  if (bc) bc.addEventListener('click', monDownloadCsv);
   document.querySelectorAll('[data-mon]').forEach(b => {
     b.addEventListener('click', () => {
       document.querySelectorAll('[data-mon]').forEach(x => x.classList.remove('on'));
@@ -2138,7 +2178,7 @@ function monInit(){
 // Inicia ciclo al hacer LOCK sobre un contenedor
 function monStartCycle(c){
   MON.cycle = {
-    n: MON.cycles.length + 1,
+    n: MON.total + 1,
     id: c.id, len: c.len,
     mass: c.mass, vgm: c.vgm,
     t0: performance.now(),
@@ -2155,8 +2195,11 @@ function monEndCycle(status){
   c.status = status || 'COMPLETADO';
   MON.cycles.unshift(c);
   if (MON.cycles.length > 20) MON.cycles.length = 20;
+  MON.total++;
+  if (MON.first10.length < 10) MON.first10.push(c);
   MON.cycle = null;
   monRenderCycles();
+  monRenderTable();
   monRenderSummary(c);
   // Reflejar en el log general
   log(`Ciclo #${String(c.n).padStart(3, '0')} · ${c.id} · T máx ${(c.maxT/1000).toFixed(1)} kN · θ máx ${(c.maxTheta*180/Math.PI).toFixed(1)}° · ${fmtDur(c.duration)} · ${c.status}`);
@@ -2216,6 +2259,89 @@ function monRenderSummary(c){
   `;
   clearTimeout(monRenderSummary._t);
   monRenderSummary._t = setTimeout(() => { if (box.style.display !== 'none') box.style.display = 'none'; }, 20000);
+}
+
+// Máximos del ciclo en curso. Se ejecuta SIEMPRE (aunque el panel de monitoreo
+// esté minimizado u oculto), para que el historial y la tabla nunca queden en 0.
+function monTrackMax(){
+  const c = MON.cycle; if (!c) return;
+  const T = S.T, sg = S.sigma, hh = S.sp.y, th = Math.abs(S.theta), vv = Math.abs(S.hoist.v), ww = S.windKmh, mm = Math.abs(S.moment);
+  if (T  > c.maxT)      c.maxT = T;
+  if (sg > c.maxSigma)  c.maxSigma = sg;
+  if (hh > c.maxH)      c.maxH = hh;
+  if (th > c.maxTheta)  c.maxTheta = th;
+  if (vv > c.maxV)      c.maxV = vv;
+  if (ww > c.maxWind)   c.maxWind = ww;
+  if (mm > c.maxMoment) c.maxMoment = mm;
+}
+
+// ---------------------------------------------------------------------
+//  TABLA TIPO EXCEL (primeros 10 contenedores) + descarga
+// ---------------------------------------------------------------------
+const XL_COLS = [
+  { h: 'N.º',        u: '',        v: (c, i) => i + 1 },
+  { h: 'Contenedor', u: 'ID',      v: c => fmtId(c.id), cls: 'id' },
+  { h: 'Tamaño',     u: 'ft',      v: c => ft(c.len) },
+  { h: 'Peso',       u: 'kg',      v: c => Math.round(c.mass) },
+  { h: 'VGM',        u: 'kg',      v: c => Math.round(c.vgm) },
+  { h: 'Carga total',u: 'kg',      v: c => Math.round(c.mass + SPR_MASS) },
+  { h: 'Tensión máx',u: 'kN',      v: c => +(c.maxT / 1000).toFixed(1) },
+  { h: 'σ máx',      u: 'MPa',     v: c => +c.maxSigma.toFixed(1) },
+  { h: 'Altura máx', u: 'm',       v: c => +c.maxH.toFixed(1) },
+  { h: 'θ máx',      u: '°',       v: c => +(c.maxTheta * 180 / Math.PI).toFixed(2) },
+  { h: 'Vel. máx',   u: 'm/s',     v: c => +c.maxV.toFixed(2) },
+  { h: 'Viento máx', u: 'km/h',    v: c => Math.round(c.maxWind) },
+  { h: 'Momento máx',u: 'kN·m',    v: c => Math.round(c.maxMoment) },
+  { h: 'Duración',   u: 'mm:ss',   v: c => fmtDur(c.duration) },
+  { h: 'Estado',     u: '',        v: c => c.status, cls: 'st' }
+];
+function monRenderTable(){
+  const tb = $('mon-xl'); if (!tb) return;
+  const rows = MON.first10;
+  const nf = n => (typeof n === 'number' ? n.toLocaleString('es-PE') : n);
+  let h = '<thead><tr>' + XL_COLS.map(c => `<th>${c.h}${c.u ? `<small>(${c.u})</small>` : '<small>&nbsp;</small>'}</th>`).join('') + '</tr></thead><tbody>';
+  for (let i = 0; i < 10; i++) {
+    const c = rows[i];
+    h += '<tr>' + XL_COLS.map((col, j) => {
+      if (!c) return j === 0 ? `<td>${i + 1}</td>` : '<td>&nbsp;</td>';
+      let cls = col.cls || '';
+      if (col.cls === 'st') cls = c.status === 'COMPLETADO' ? 'ok' : 'bad';
+      return `<td class="${cls}">${nf(col.v(c, i))}</td>`;
+    }).join('') + '</tr>';
+  }
+  tb.innerHTML = h + '</tbody>';
+  const cnt = $('mon-xl-count'); if (cnt) cnt.textContent = rows.length + ' / 10';
+  ['mon-dl-xlsx', 'mon-dl-csv'].forEach(id => { const b = $(id); if (b) b.disabled = !rows.length; });
+}
+function monTableData(){
+  const head = XL_COLS.map(c => c.u ? `${c.h} (${c.u})` : c.h);
+  const body = MON.first10.map((c, i) => XL_COLS.map(col => col.v(c, i)));
+  return [head, ...body];
+}
+function monStamp(){ const d = new Date(), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`; }
+function monSave(blob, name){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+function monDownloadCsv(){
+  if (!MON.first10.length) return;
+  const esc = v => { v = String(v); return /[",;\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  const csv = '\uFEFF' + monTableData().map(r => r.map(esc).join(';')).join('\r\n');
+  monSave(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `Contenedores_STS_${monStamp()}.csv`);
+  log('Tabla de contenedores descargada (CSV)');
+}
+function monDownloadXlsx(){
+  if (!MON.first10.length) return;
+  if (typeof XLSX === 'undefined') { log('Librería Excel no disponible (sin conexión): se descarga CSV', true); monDownloadCsv(); return; }
+  const data = monTableData();
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = data[0].map((h, j) => ({ wch: Math.max(String(h).length, ...data.slice(1).map(r => String(r[j]).length)) + 3 }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Contenedores');
+  XLSX.writeFile(wb, `Contenedores_STS_${monStamp()}.xlsx`);
+  log('Tabla de contenedores descargada (Excel)');
 }
 
 function monUpdate(dt){
@@ -2365,18 +2491,6 @@ function monUpdate(dt){
     const alarm = S.sigma > SIGMA_ADM || S.util > 100 || S.windKmh > 72;
     stEl.className = 'pill ' + (alarm ? 'pill-red' : hasCycle ? 'pill-green' : 'pill-amber');
     stEl.textContent = alarm ? 'ALARMA' : hasCycle ? 'IZANDO' : 'STANDBY';
-  }
-
-  // ---------- Máximos del ciclo en curso ----------
-  if (MON.cycle) {
-    const T = S.T, sg = S.sigma, hh = hSpreader, th = Math.abs(S.theta), vv = Math.abs(S.hoist.v), ww = S.windKmh, mm = Math.abs(S.moment);
-    if (T > MON.cycle.maxT) MON.cycle.maxT = T;
-    if (sg > MON.cycle.maxSigma) MON.cycle.maxSigma = sg;
-    if (hh > MON.cycle.maxH) MON.cycle.maxH = hh;
-    if (th > MON.cycle.maxTheta) MON.cycle.maxTheta = th;
-    if (vv > MON.cycle.maxV) MON.cycle.maxV = vv;
-    if (ww > MON.cycle.maxWind) MON.cycle.maxWind = ww;
-    if (mm > MON.cycle.maxMoment) MON.cycle.maxMoment = mm;
   }
 
   // ---------- Muestreo para el gráfico ----------
@@ -2789,6 +2903,7 @@ function loop(now){
   uiAcc += dt;
   if (uiAcc > 0.1) { uiAcc = 0; updateUI(); }
   // El monitoreo se actualiza a velocidad propia (no depende del throttle de UI)
+  monTrackMax();
   monUpdate(dt);
   if (controls.enabled) controls.update(); else updateCamera();
   renderer.shadowMap.needsUpdate = true;
