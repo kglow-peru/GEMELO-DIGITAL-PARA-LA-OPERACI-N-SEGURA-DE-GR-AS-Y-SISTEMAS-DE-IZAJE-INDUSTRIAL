@@ -23,6 +23,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   :root{
     --bg:#020617; --txt:#e2e8f0; --cyan:#22d3ee;
@@ -2183,14 +2184,35 @@ function monStartCycle(c){
     mass: c.mass, vgm: c.vgm,
     t0: performance.now(),
     maxT: 0, maxSigma: 0, maxH: 0, maxTheta: 0, maxV: 0, maxWind: 0, maxMoment: 0,
+    samples: [], lastS: 0,   // serie temporal propia de ESTE contenedor (para su gráfico en Excel)
     status: 'EN CURSO'
   };
+  monSample(MON.cycle, true);
+}
+
+// Guarda una muestra (cada 0,5 s) con los valores instantáneos del izaje
+function monSample(c, force){
+  const now = performance.now();
+  if (!force && now - c.lastS < 500) return;
+  if (c.samples.length >= 1200) return;
+  c.lastS = now;
+  c.samples.push({
+    t: +((now - c.t0) / 1000).toFixed(1),
+    T: +(S.T / 1000).toFixed(1),
+    sg: +S.sigma.toFixed(1),
+    h: +S.sp.y.toFixed(2),
+    th: +(Math.abs(S.theta) * 180 / Math.PI).toFixed(2),
+    v: +Math.abs(S.hoist.v).toFixed(2),
+    m: Math.round(Math.abs(S.moment)),
+    w: Math.round(S.windKmh)
+  });
 }
 
 // Cierra ciclo al hacer UNLOCK en destino
 function monEndCycle(status){
   if (!MON.cycle) return;
   const c = MON.cycle;
+  monSample(c, true);
   c.duration = (performance.now() - c.t0) / 1000;
   c.status = status || 'COMPLETADO';
   MON.cycles.unshift(c);
@@ -2273,6 +2295,7 @@ function monTrackMax(){
   if (vv > c.maxV)      c.maxV = vv;
   if (ww > c.maxWind)   c.maxWind = ww;
   if (mm > c.maxMoment) c.maxMoment = mm;
+  monSample(c, false);
 }
 
 // ---------------------------------------------------------------------
@@ -2332,16 +2355,165 @@ function monDownloadCsv(){
   monSave(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `Contenedores_STS_${monStamp()}.csv`);
   log('Tabla de contenedores descargada (CSV)');
 }
-function monDownloadXlsx(){
+// ---------------------------------------------------------------------
+//  Gráficos de línea nativos de Excel (se inyectan dentro del .xlsx con JSZip)
+// ---------------------------------------------------------------------
+const XL_NS = 'xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
+function xmlEsc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function xlCol(j){ return String.fromCharCode(65 + j); }
+
+function monChartXml(title, series, data, catCol, sheet){
+  const n = data.length - 1, q = "'" + sheet + "'!";
+  const catL = xlCol(catCol);
+  const catPts = data.slice(1).map((r, i) => `<c:pt idx="${i}"><c:v>${xmlEsc(r[catCol])}</c:v></c:pt>`).join('');
+  let idx = 0;
+  const serXml = s => {
+    const L = xlCol(s.col), i = idx++;
+    const fill = `<a:solidFill><a:srgbClr val="${s.color}"/></a:solidFill>`;
+    const vals = data.slice(1).map((r, k) => `<c:pt idx="${k}"><c:v>${r[s.col]}</c:v></c:pt>`).join('');
+    return `<c:ser><c:idx val="${i}"/><c:order val="${i}"/>` +
+      `<c:tx><c:strRef><c:f>${q}$${L}$1</c:f><c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>${xmlEsc(data[0][s.col])}</c:v></c:pt></c:strCache></c:strRef></c:tx>` +
+      `<c:spPr><a:ln w="38100" cap="rnd">${fill}<a:round/></a:ln></c:spPr>` +
+      `<c:marker><c:symbol val="circle"/><c:size val="7"/><c:spPr>${fill}<a:ln w="9525">${fill}</a:ln></c:spPr></c:marker>` +
+      `<c:cat><c:strRef><c:f>${q}$${catL}$2:$${catL}$${n + 1}</c:f><c:strCache><c:ptCount val="${n}"/>${catPts}</c:strCache></c:strRef></c:cat>` +
+      `<c:val><c:numRef><c:f>${q}$${L}$2:$${L}$${n + 1}</c:f><c:numCache><c:formatCode>General</c:formatCode><c:ptCount val="${n}"/>${vals}</c:numCache></c:numRef></c:val>` +
+      `<c:smooth val="0"/></c:ser>`;
+  };
+  const axTitle = (t, rot) => t ? `<c:title><c:tx><c:rich><a:bodyPr${rot ? ' rot="-5400000" vert="horz"' : ''}/><a:p><a:pPr><a:defRPr sz="900" b="0"/></a:pPr><a:r><a:rPr lang="es-PE" sz="900" b="0"/><a:t>${xmlEsc(t)}</a:t></a:r></a:p></c:rich></c:tx><c:overlay val="0"/></c:title>` : '';
+  const catAx = (id, cross, del, t) => `<c:catAx><c:axId val="${id}"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="${del}"/><c:axPos val="b"/>${axTitle(t, false)}<c:numFmt formatCode="General" sourceLinked="1"/><c:majorTickMark val="none"/><c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/><c:crossAx val="${cross}"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/><c:noMultiLvlLbl val="0"/></c:catAx>`;
+  const valAx = (id, cross, pos, t, grid, crosses) => `<c:valAx><c:axId val="${id}"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="${pos}"/>` +
+    (grid ? '<c:majorGridlines><c:spPr><a:ln w="9525"><a:solidFill><a:srgbClr val="D9D9D9"/></a:solidFill></a:ln></c:spPr></c:majorGridlines>' : '') +
+    `${axTitle(t, true)}<c:numFmt formatCode="General" sourceLinked="0"/><c:majorTickMark val="none"/><c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/><c:crossAx val="${cross}"/><c:crosses val="${crosses}"/><c:crossBetween val="between"/></c:valAx>`;
+
+  const prim = series.filter(s => !s.sec), sec = series.filter(s => s.sec);
+  let plot = '';
+  if (prim.length) plot += `<c:lineChart><c:grouping val="standard"/><c:varyColors val="0"/>${prim.map(serXml).join('')}<c:marker val="1"/><c:axId val="111"/><c:axId val="112"/></c:lineChart>`;
+  if (sec.length)  plot += `<c:lineChart><c:grouping val="standard"/><c:varyColors val="0"/>${sec.map(serXml).join('')}<c:marker val="1"/><c:axId val="113"/><c:axId val="114"/></c:lineChart>`;
+  plot += catAx(111, 112, 0, series.axisX) + valAx(112, 111, 'l', series.axisL, true, 'autoZero');
+  if (sec.length) plot += catAx(113, 114, 1) + valAx(114, 113, 'r', series.axisR, false, 'max');
+
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+    `<c:chartSpace ${XL_NS}><c:roundedCorners val="0"/><c:chart>` +
+    `<c:title><c:tx><c:rich><a:bodyPr/><a:p><a:pPr><a:defRPr sz="1400" b="0"/></a:pPr><a:r><a:rPr lang="es-PE" sz="1400" b="0"/><a:t>${xmlEsc(title)}</a:t></a:r></a:p></c:rich></c:tx><c:overlay val="0"/></c:title>` +
+    `<c:autoTitleDeleted val="0"/><c:plotArea><c:layout/>${plot}</c:plotArea>` +
+    `<c:legend><c:legendPos val="b"/><c:overlay val="0"/></c:legend><c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart></c:chartSpace>`;
+}
+
+function monAnchor(id, name, c1, r1, c2, r2, rid){
+  return `<xdr:twoCellAnchor><xdr:from><xdr:col>${c1}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${r1}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>` +
+    `<xdr:to><xdr:col>${c2}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${r2}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>` +
+    `<xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="${id}" name="${name}"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr>` +
+    `<xdr:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></xdr:xfrm><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">` +
+    `<c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:id="${rid}"/>` +
+    `</a:graphicData></a:graphic></xdr:graphicFrame><xdr:clientData/></xdr:twoCellAnchor>`;
+}
+
+// Recibe el .xlsx generado por SheetJS y le agrega gráficos de línea nativos.
+// plan = [{ idx: nº de hoja (1..n), charts: [{ xml, c1, r1, c2, r2 }] }]
+async function monAddCharts(buf, plan){
+  const zip = await JSZip.loadAsync(buf);
+  const REL = 'http://schemas.openxmlformats.org/package/2006/relationships';
+  const RT = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/';
+  let chartN = 0, ct = await zip.file('[Content_Types].xml').async('string'), extra = '';
+  for (const p of plan) {
+    const sheetPath = `xl/worksheets/sheet${p.idx}.xml`;
+    if (!zip.file(sheetPath)) continue;
+    let anchors = '', drels = '';
+    p.charts.forEach((ch, k) => {
+      chartN++;
+      zip.file(`xl/charts/chart${chartN}.xml`, ch.xml);
+      extra += `<Override PartName="/xl/charts/chart${chartN}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>`;
+      drels += `<Relationship Id="rId${k + 1}" Type="${RT}chart" Target="../charts/chart${chartN}.xml"/>`;
+      anchors += monAnchor(k + 2, 'Grafico ' + chartN, ch.c1, ch.r1, ch.c2, ch.r2, 'rId' + (k + 1));
+    });
+    zip.file(`xl/drawings/drawing${p.idx}.xml`,
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">${anchors}</xdr:wsDr>`);
+    zip.file(`xl/drawings/_rels/drawing${p.idx}.xml.rels`,
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="${REL}">${drels}</Relationships>`);
+    extra += `<Override PartName="/xl/drawings/drawing${p.idx}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>`;
+
+    const relPath = `xl/worksheets/_rels/sheet${p.idx}.xml.rels`;
+    const relXml = `<Relationship Id="rIdDraw1" Type="${RT}drawing" Target="../drawings/drawing${p.idx}.xml"/>`;
+    const old = zip.file(relPath);
+    if (old) zip.file(relPath, (await old.async('string')).replace('</Relationships>', relXml + '</Relationships>'));
+    else zip.file(relPath, `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="${REL}">${relXml}</Relationships>`);
+
+    let sx = await zip.file(sheetPath).async('string');
+    sx = sx.replace('</worksheet>', `<drawing xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:id="rIdDraw1"/></worksheet>`);
+    zip.file(sheetPath, sx);
+  }
+  zip.file('[Content_Types].xml', ct.replace('</Types>', extra + '</Types>'));
+  return zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+
+const XL_SAMPLE_HEAD = ['Tiempo (s)', 'Tensión (kN)', 'σ (MPa)', 'Altura (m)', 'θ (°)', 'Velocidad (m/s)', 'Momento (kN·m)', 'Viento (km/h)'];
+function monSampleData(c){
+  const rows = (c.samples && c.samples.length ? c.samples : [{ t: 0, T: 0, sg: 0, h: 0, th: 0, v: 0, m: 0, w: 0 }]);
+  return [XL_SAMPLE_HEAD, ...rows.map(r => [r.t, r.T, r.sg, r.h, r.th, r.v, r.m, r.w])];
+}
+
+async function monDownloadXlsx(){
   if (!MON.first10.length) return;
   if (typeof XLSX === 'undefined') { log('Librería Excel no disponible (sin conexión): se descarga CSV', true); monDownloadCsv(); return; }
+  const SHEET = 'Contenedores';
+  const wb = XLSX.utils.book_new();
+  const fitCols = d => d[0].map((h, j) => ({ wch: Math.max(String(h).length, ...d.slice(1).map(r => String(r[j]).length)) + 3 }));
+
+  // Hoja 1: resumen de los contenedores
   const data = monTableData();
   const ws = XLSX.utils.aoa_to_sheet(data);
-  ws['!cols'] = data[0].map((h, j) => ({ wch: Math.max(String(h).length, ...data.slice(1).map(r => String(r[j]).length)) + 3 }));
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Contenedores');
-  XLSX.writeFile(wb, `Contenedores_STS_${monStamp()}.xlsx`);
-  log('Tabla de contenedores descargada (Excel)');
+  ws['!cols'] = fitCols(data);
+  XLSX.utils.book_append_sheet(wb, ws, SHEET);
+
+  // Hojas 2..n: una hoja por contenedor con SU serie temporal
+  const sheets = MON.first10.map((c, i) => {
+    const d = monSampleData(c), name = `Contenedor ${i + 1}`;
+    const w = XLSX.utils.aoa_to_sheet(d);
+    w['!cols'] = fitCols(d);
+    XLSX.utils.book_append_sheet(wb, w, name);
+    return { c, d, name, n: i + 1 };
+  });
+
+  const file = `Contenedores_STS_${monStamp()}.xlsx`;
+  if (typeof JSZip === 'undefined') {
+    XLSX.writeFile(wb, file);
+    log('Excel descargado SIN gráficos (JSZip no disponible, revisa la conexión)', true);
+    return;
+  }
+  try {
+    const col = h => data[0].findIndex(x => String(x).startsWith(h));
+    const cT = col('Tensión máx'), cS = col('σ máx'), cM = col('Momento máx'), cH = col('Altura máx'), cA = col('θ máx');
+    const g1 = [{ col: cT, color: '2E75B6' }, { col: cS, color: 'C55A11' }, { col: cM, color: '7F7F7F', sec: true }];
+    g1.axisL = 'Tensión (kN) / Esfuerzo (MPa)'; g1.axisR = 'Momento (kN·m)'; g1.axisX = 'Contenedor';
+    const g2 = [{ col: cH, color: '2E75B6' }, { col: cA, color: 'C55A11', sec: true }];
+    g2.axisL = 'Altura (m)'; g2.axisR = 'Ángulo (°)'; g2.axisX = 'Contenedor';
+    const top = data.length + 2;
+    const plan = [{ idx: 1, charts: [
+      { xml: monChartXml('Comparativa: tensión, esfuerzo y momento máx.', g1, data, 1, SHEET), c1: 0, r1: top, c2: 7, r2: top + 22 },
+      { xml: monChartXml('Comparativa: altura y pendulación máx.', g2, data, 1, SHEET), c1: 7, r1: top, c2: 15, r2: top + 22 }
+    ] }];
+
+    // Un gráfico independiente por contenedor (eje X = tiempo del izaje)
+    sheets.forEach((sh, k) => {
+      const g = [
+        { col: 1, color: '2E75B6' },                 // Tensión
+        { col: 2, color: 'C55A11' },                 // σ
+        { col: 3, color: '70AD47' },                 // Altura
+        { col: 6, color: '7F7F7F', sec: true }       // Momento
+      ];
+      g.axisL = 'Tensión (kN) / σ (MPa) / Altura (m)'; g.axisR = 'Momento (kN·m)'; g.axisX = 'Tiempo del izaje (s)';
+      plan.push({ idx: k + 2, charts: [
+        { xml: monChartXml(`Contenedor ${sh.n} · ${fmtId(sh.c.id)} (${sh.c.status})`, g, sh.d, 0, sh.name), c1: 9, r1: 1, c2: 22, r2: 26 }
+      ] });
+    });
+
+    monSave(await monAddCharts(XLSX.write(wb, { bookType: 'xlsx', type: 'array' }), plan), file);
+    log('Excel descargado: resumen + un gráfico independiente por contenedor');
+  } catch (e) {
+    console.error(e);
+    XLSX.writeFile(wb, file);
+    log('Excel descargado sin gráficos (error al crearlos)', true);
+  }
 }
 
 function monUpdate(dt){
